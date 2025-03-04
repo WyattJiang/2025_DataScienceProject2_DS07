@@ -1,0 +1,13 @@
+pandas
+numpy
+matplotlib
+scikit-learn
+xgboost
+scipy
+flask
+seaborn
+h3
+netcdf4
+mapclassify
+geopandas
+geojson
