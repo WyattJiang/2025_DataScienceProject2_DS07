@@ -1,4 +1,4 @@
-//This code is to test connection to the database
+//this is the code to test the conncetion 
 const {MongoClient} = require('mongodb');
 const username = 'zkoh0011';
 const password = 'Amoskohzenyii';
