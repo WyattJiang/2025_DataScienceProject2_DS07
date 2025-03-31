@@ -21,6 +21,7 @@ import {
   Download,
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import ChatPage from './ChatPage'; 
 
 // --- Configuration & Constants ---
 const CLAYTON_COORDS: LatLngExpression = [-37.9150, 145.1290];
@@ -114,11 +115,19 @@ const WeatherDashboard: React.FC = () => {
   const [selectedHex, setSelectedHex] = useState<any | null>(null);
   const [activeTool, setActiveTool] = useState<string | null>(null);
   const [, _] = useState({ start: '2025-03-30', end: '2025-04-06' });
+  const [chatbotOpen, setChatbotOpen] = useState(false); // State to control chatbot visibility
+
 
   // --- Data Fetching (Mock for Clayton) ---
   useEffect(() => {
     setHexData(generateMockHexDataForClayton());
   }, []);
+
+  // Handle toggling the chatbot visibility
+  const toggleChatbot = () => {
+    setChatbotOpen(!chatbotOpen);
+    console.log("the chatbot is open")
+  };
 
   // --- Map Styling Callback ---
   const geoJsonStyle: StyleFunction = useCallback((feature) => {
@@ -264,6 +273,12 @@ const WeatherDashboard: React.FC = () => {
           <button className="w-full text-left p-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md flex items-center transition-colors duration-150">
             <MapIcon className="mr-3 h-5 w-5 flex-shrink-0" /> Map Dashboard
           </button>
+          <button
+            onClick={toggleChatbot}
+            className="w-full text-left p-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md flex items-center transition-colors duration-150"
+          >
+            <User className="mr-3 h-5 w-5 flex-shrink-0" /> Open Chatbot
+          </button>
 
           {/* Layer Controls */}
           <div className="pt-2">
@@ -352,6 +367,7 @@ const WeatherDashboard: React.FC = () => {
             </button>
           </div>
         </header>
+        
 
         {/* Map Area */}
         <div className="flex-1 relative bg-gray-100">
@@ -376,7 +392,23 @@ const WeatherDashboard: React.FC = () => {
               />
             )}
           </MapContainer>
-
+          
+          {/* Chatbot Popup (conditionally rendered) */}
+          {chatbotOpen && (
+                <div className="absolute top-2 right-2 bottom-2 w-80 max-h-[calc(100vh-5rem)] bg-white shadow-lg rounded-lg border border-gray-200 flex flex-col p-4 z-[1000]">
+                  <div className="flex justify-between items-center mb-3 pb-3 border-b border-gray-200 flex-shrink-0">
+                    {/* Close button */}
+                    <button
+                      className="absolute top-2 right-2 text-gray-600"
+                      onClick={toggleChatbot} 
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                    {/* ChatPage component */}
+                    <ChatPage />
+                  </div>
+                </div>
+              )}
           {/* --- Selected Hexagon Detail Panel --- */}
           {selectedHex && (
             <div className="absolute top-2 right-2 bottom-2 w-80 max-h-[calc(100vh-5rem)] bg-white shadow-lg rounded-lg border border-gray-200 flex flex-col p-4 z-[1000]">
