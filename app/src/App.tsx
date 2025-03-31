@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+// modify by AMOS for integrating front end and back end mongodb API connection line(1)//
+
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L, { LatLngExpression } from 'leaflet';
@@ -24,14 +26,30 @@ L.Icon.Default.mergeOptions({
 
 const WeatherDashboard: React.FC = () => {
   const [dateRange, setDateRange] = useState({ start: '10-03-2025', end: '17-03-2025' });
-  
+
+  // ==== ADDED CODE: fetch movie data from backend and connect to frontend  by AMOS====
+  const [movies, setMovies] = useState<any[]>([]); // holds movie data from backend
+
+  useEffect(() => {
+    fetch('http://localhost:3001/movies')
+        .then(res => res.json())
+        .then(data => {
+          console.log("Fetched Movies:", data);
+          setMovies(data);
+        })
+        .catch(err => console.error("Error fetching movies:", err));
+  }, []);
+// ==== END OF ADDED CODE ====
+
+
   const weatherPoints = [
     { id: 1, position: [51.505, -0.09], name: 'London', temp: '14°C', condition: 'Cloudy' },
     { id: 2, position: [40.7128, -74.006], name: 'New York', temp: '18°C', condition: 'Sunny' },
     { id: 3, position: [35.6762, 139.6503], name: 'Tokyo', temp: '22°C', condition: 'Rainy' },
     { id: 4, position: [-33.8688, 151.2093], name: 'Sydney', temp: '27°C', condition: 'Clear' }
   ];
-  
+
+
   return (
     <div className="flex h-screen bg-white text-gray-800">
       {/* Sidebar */}
