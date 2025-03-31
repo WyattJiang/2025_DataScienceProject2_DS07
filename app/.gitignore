@@ -26,3 +26,7 @@ dist-ssr
 # Ignore package manager files
 yarn.lock
 package-lock.json
+# JetBrains IDE settings
+.idea/
+!.idea/codeStyles
+!.idea/inspectionProfiles
