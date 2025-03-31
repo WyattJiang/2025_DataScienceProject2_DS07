@@ -4,11 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8968b36d-0409-4c48-9b56-95c3d88464f2" name="Changes" comment="rename index.js to connect.js in dbconnect folder to avoid confusion">
-      <change afterPath="$PROJECT_DIR$/app/src/backend/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/app/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/app/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/App.tsx" afterDir="false" />
+    <list default="true" id="8968b36d-0409-4c48-9b56-95c3d88464f2" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/backend/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/backend/index.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -25,7 +23,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="amos" />
+        <entry key="$PROJECT_DIR$" value="main" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -42,6 +40,9 @@
     &quot;accountId&quot;: &quot;91531b1b-9003-4aaf-a7fb-7e8fca8f13cd&quot;
   }
 }</component>
+  <component name="PackageJsonUpdateNotifier">
+    <dismissed value="$PROJECT_DIR$/app/package.json" />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;customColor&quot;: &quot;&quot;,
   &quot;associatedIndex&quot;: 5
@@ -63,11 +64,33 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
+    "npm.dev.executor": "Run",
     "settings.editor.selected.configurable": "preferences.fileTypes",
-    "ts.external.directory.path": "C:\\Users\\amosk\\OneDrive\\Desktop\\Final Year Project\\2025_DataScienceProject2_DS07\\app\\node_modules\\typescript\\lib",
+    "ts.external.directory.path": "C:\\Users\\amosk\\WebstormProjects\\2025_DataScienceProject2_DS07\\app\\node_modules\\typescript\\lib",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="RunManager" selected="Node.js.index.js">
+    <configuration name="index.js" type="NodeJSConfigurationType" temporary="true" nameIsGenerated="true" path-to-js-file="$PROJECT_DIR$/app/src/backend/index.js" working-dir="$PROJECT_DIR$/app/src/backend">
+      <method v="2" />
+    </configuration>
+    <configuration name="dev" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/app/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="dev" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Node.js.index.js" />
+        <item itemvalue="npm.dev" />
+      </list>
+    </recent_temporary>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -85,6 +108,7 @@
       <updated>1742701292519</updated>
       <workItem from="1742882066683" duration="483000" />
       <workItem from="1743138326319" duration="574000" />
+      <workItem from="1743418398442" duration="1854000" />
     </task>
     <task id="LOCAL-00001" summary="comment added for the code in dbconnect">
       <option name="closed" value="true" />

@@ -18,9 +18,11 @@ app.get('/movies', async (req, res) => {
     } catch (err) {
         console.error("Failed to fetch movies", err);
         res.status(500).json({ error: "Internal Server Error" });
+    } finally {
+        await client.close();
     }
 });
-
+//currently updated sample_mflix first to localhost 3001 until data gathered from sources.
 app.listen(PORT, () => {
-    console.log(`✅ Backend server running at http://localhost:${PORT}`);
+    console.log(`✅ Backend server running at http://localhost:${PORT}/movies`);
 });
