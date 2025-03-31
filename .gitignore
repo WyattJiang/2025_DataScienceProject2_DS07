@@ -60,3 +60,4 @@ package-lock.json
 # Ignore cache directories
 .cache/
 *.tmp
+app/package-lock.json
