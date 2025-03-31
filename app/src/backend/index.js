@@ -6,7 +6,7 @@ const app = express();
 app.use(cors());
 
 const PORT = 3001;
-const uri = "mongodb+srv://zkoh0011:Amoskohzenyii@cluster0.einni.mongodb.net/sample_mflix?retryWrites=true&w=majority&appName=Cluster0";
+const uri = "mongodb+srv://zkoh0011:{password}@cluster0.einni.mongodb.net/sample_mflix?retryWrites=true&w=majority&appName=Cluster0";
 const client = new MongoClient(uri);
 
 app.get('/movies', async (req, res) => {
