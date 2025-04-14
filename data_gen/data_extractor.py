@@ -8,7 +8,9 @@ from shapely.geometry import Polygon
 from shapely import wkt 
 import folium
 import geopandas as gpd
-import tqdm.notebook as tqdm
+from shapely.ops import nearest_points
+from geopandas.tools import sjoin_nearest
+# import tqdm.notebook as tqdm
 
 class DataExtractor:
     def __init__(self, metric="all", year_range=(2000, 2020)):
@@ -29,7 +31,7 @@ class DataExtractor:
 
     def download_catalog(self, variables):
         for var in variables:
-            self.download_data(var)
+            self._download_data(var)
 
     def process_catalog(self, variables):
         dfs = {"precip": [],
@@ -76,31 +78,80 @@ class DataExtractor:
                         dfs[metric][i] = dfs[metric][i].drop(columns=["lat", "lon"])
                         tmin_df = pd.concat([tmin_df, dfs[metric][i]], axis=1)
 
-        df_lst = [precip_df, tmin_df, tmax_df]
-        return precip_df
+        return precip_df, tmin_df, tmax_df
+         
     
     def aggregate_shape(self, df):
+        # Climate points as GeoDataFrame
         climate_gdf = gpd.GeoDataFrame(
-            df,
+            df.drop(columns=['lat', 'lon']),
             geometry=gpd.points_from_xy(df.lon, df.lat),
             crs="EPSG:7844"
         )
 
-        suburbs_gdf = gpd.read_file("../data/raw/SAL_2021_AUST_GDA2020.shp")
+        # Load suburbs and set matching CRS
+        suburbs_gdf = gpd.read_file("../../data/raw/SAL_2021_AUST_GDA2020.shp").to_crs(climate_gdf.crs)
 
-        joined = gpd.sjoin(climate_gdf, suburbs_gdf, how="left", predicate="within")
-        aggregated = joined.groupby("STE_NAME21")[df.columns.to_list()[2:]].mean().reset_index()
+        # Spatial join with nearest neighbor to ensure all suburbs matched
+        joined = gpd.sjoin_nearest(suburbs_gdf, climate_gdf, how="left", distance_col="distance")
 
-        aggregated = aggregated.merge(
-            suburbs_gdf[["SAL_NAME21", "geometry"]],
-            on = "SAL_NAME21",
-            how = "left"
-        )
+        # Climate variables (excluding geometry and distance)
+        climate_vars = df.columns.drop(['lat', 'lon']).tolist()
 
-        return aggregated
+        # Aggregate climate data by suburb and state
+        climate_df = joined.groupby(['SAL_NAME21', 'STE_NAME21'])[climate_vars].mean().reset_index()
+
+        # Polygon geometry DataFrame
+        geometry_gdf = suburbs_gdf[['SAL_NAME21', 'geometry']].copy()
+
+        return climate_df, geometry_gdf
+    
+
+    def aggregate_h3_australia(self, df, resolution=6):
+        """
+        Aggregates climate data into hexagonal grids using h3 indexing, 
+        and filters to hexes within Australia based on suburb shapefile.
+
+        Args:
+            df (pd.DataFrame): Contains at least 'lat', 'lon', and climate variables.
+            resolution (int): H3 hex resolution (default=6, ~9 km² per hex).
+
+        Returns:
+            hex_climate_df (pd.DataFrame): hex_id and aggregated climate variables.
+            hex_geometry_gdf (gpd.GeoDataFrame): hex_id and polygon geometries within Australia.
+        """
+        df = df.copy()
+
+        # Assign hex IDs
+        df['hex_id'] = df.apply(lambda row: h3.geo_to_h3(row['lat'], row['lon'], resolution), axis=1)
+
+        # Aggregate climate variables
+        climate_vars = df.columns.drop(['lat', 'lon', 'hex_id']).tolist()
+        hex_climate_df = df.groupby('hex_id')[climate_vars].mean().reset_index()
+
+        # Generate hex polygons
+        hex_geometry_gdf = gpd.GeoDataFrame({
+            'hex_id': hex_climate_df['hex_id'],
+            'geometry': hex_climate_df['hex_id'].apply(
+                lambda hex_id: Polygon(h3.h3_to_geo_boundary(hex_id, geo_json=True))
+            )
+        }, crs="EPSG:4326")
+
+        # Load Australian suburb shapefile and dissolve to create national boundary
+        suburbs_gdf = gpd.read_file("../../data/raw/SAL_2021_AUST_GDA2020.shp").to_crs("EPSG:4326")
+        australia_boundary = suburbs_gdf.unary_union
+
+        # Filter hexes to those intersecting with Australia boundary
+        hex_geometry_gdf = hex_geometry_gdf[hex_geometry_gdf.geometry.intersects(australia_boundary)].reset_index(drop=True)
+
+        # Now filter hex_climate_df to match filtered hex_geometry_gdf
+        hex_climate_df = hex_climate_df[hex_climate_df['hex_id'].isin(hex_geometry_gdf['hex_id'])].reset_index(drop=True)
+
+        return hex_climate_df, hex_geometry_gdf
+
     
     def _build_df(self, variable, n):
-        dataset = nc.Dataset(f"../data/raw/{variable}/{n.split('/')[-1]}")
+        dataset = nc.Dataset(f"../../data/raw/{variable}/{n.split('/')[-1]}")
         lst = []
 
         if n[-7:-3] == "2020":
@@ -148,31 +199,31 @@ class DataExtractor:
         # Make base directories
         self._make_base_directories()
         if variable == "precip":
-            os.makedirs("../data/raw/precip", exist_ok=True)
+            os.makedirs("../../data/raw/precip", exist_ok=True)
             for ds in self._precip_list:
                 link = ds
                 response = requests.get(link)
                             
                 # Write the downloaded content to a local file
-                with open(f"../data/raw/precip/{ds.split('/')[-1]}", 'wb') as f:
+                with open(f"../../data/raw/precip/{ds.split('/')[-1]}", 'wb') as f:
                     f.write(response.content)
         elif variable == "tmax":
-            os.makedirs("../data/raw/tmax", exist_ok=True)
+            os.makedirs("../../data/raw/tmax", exist_ok=True)
             for ds in self._tmax_list:
                 link = ds
                 response = requests.get(ds)
                             
                 # Write the downloaded content to a local file
-                with open(f"../data/raw/tmax/{ds.split('/')[-1]}", 'wb') as f:
+                with open(f"../../data/raw/tmax/{ds.split('/')[-1]}", 'wb') as f:
                     f.write(response.content)
         elif variable == "tmin":
-            os.makedirs("../data/raw/tmin", exist_ok=True)
+            os.makedirs("../../data/raw/tmin", exist_ok=True)
             for ds in self._tmin_list:
                 link = ds
                 response = requests.get(ds)
                             
                 # Write the downloaded content to a local file
-                with open(f"../data/raw/tmin/{ds.split('/')[-1]}", 'wb') as f:
+                with open(f"../../data/raw/tmin/{ds.split('/')[-1]}", 'wb') as f:
                     f.write(response.content)
         else:
             print("Invalid catalog name")
