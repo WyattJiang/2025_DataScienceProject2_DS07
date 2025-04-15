@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet'; // Added MapContainer etc imports here
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 
 // Import Config and Role Types - *** Corrected: Removed DEFAULT_ROLE import ***
@@ -59,7 +60,7 @@ const generateMockHexDataForClayton = (resolution: number): { [key: string]: any
             floodRisk: Math.random() < 0.02 ? 'Low' : 'Very Low',
             solarIrradiance: 4 + Math.random() * 1.5,
             historicalTemp: Array.from({ length: 12 }, (_, i) => ({ month: i + 1, avgTemp: 12 + Math.random() * 8 + Math.sin(i / 1.9) * 6 })),
-            projectedTempChange2050: 2.0 + Math.random() * 0.5,
+            projectedTempChange: 0,
         };
     });
     console.log(`Generated ${Object.keys(data).length} hexagons.`);
@@ -119,6 +120,20 @@ const WeatherDashboard: React.FC = () => {
   const [selectedHex, setSelectedHex] = useState<any | null>(null);
   const [activeTool, setActiveTool] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Prediction Model
+  const genAI = new GoogleGenerativeAI("AIzaSyDn_pPZRN1RihRU1Dk63rygqPXDTvqVVJI");
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = (today.getMonth() + 1).toString().padStart(2, '0'); // Month is 0-based
+    const day = today.getDate().toString().padStart(2, '0'); // Day is 1-based
+    return `${year}-${month}-${day}`; // Format to YYYY-MM-DD
+  });
+  const [isLoadingHexDetail, setIsLoadingHexDetail] = useState<boolean>(false);
+  const [selectedTime, setSelectedTime] = useState<string>("12:00");  // Default to noon
+
 
   // --- Data Loading Effect ---
   useEffect(() => {
@@ -207,6 +222,62 @@ const WeatherDashboard: React.FC = () => {
        setActiveAppPage('dashboard');
     }
   };
+
+  // Add this function to handle button click
+  const handleProjectionInClick = async () => {
+    if (!selectedHex) return;
+
+    const { lat, lon } = selectedHex;
+
+    try {
+      setIsLoadingHexDetail(true);  // Start mini loading in Hex Detail Panel 
+
+      const prompt = 
+      "Give me an educated guess of the average maximum (NO EXPLANATION) temperature for this \ndate: "+selectedDate+
+      "\ntime:"+selectedTime+"\nlatitude:"+lat+"\nlongitude: "+lon+
+      "\nDo account for global warming if date chosen is in the future";
+      const result = await model.generateContent(prompt);  
+      const response = await result.response;
+      console.log(prompt)
+      console.log("This is the new projected temp: "+response.text());
+      // Extract the numeric temperature change from the response
+      let tempChange = 0;
+      let tempchgstr = "";
+
+      // Loop through each character in the responseText and extract numeric characters
+      for (let char of response.text()) {
+        if (/\-|\d|\./.test(char)) {  // Check if character is a number
+          tempchgstr += char;
+        }
+      }
+      // Convert the extracted string to an integer
+      tempChange = parseFloat(tempchgstr);
+      // console.log(tempChange)
+      if (!isNaN(tempChange)) {
+        const updatedHexData = {
+          ...selectedHex,
+          projectedTempChange: tempChange,  
+        };
+  
+        // Update hex data state
+        setSelectedHex(updatedHexData);
+      } else {
+        const updatedHexData = {
+          ...selectedHex,
+          projectedTempChange: 22 + Math.random() * 1 + Math.random() * 0.5,  // Set the projected temperature change
+        };
+  
+        // Update hex data state
+        setSelectedHex(updatedHexData);  // Update selectedHex with a random temp change
+      }
+    } catch (error) {
+      console.error("Error predicting temperature change:", error);
+    } finally {
+      setIsLoadingHexDetail(false);  // End mini loading in Hex Detail Panel
+    }
+  };
+
+
 
   const closeDetails = () => setSelectedHex(null);
   const closeChatbot = () => {
@@ -433,7 +504,58 @@ const WeatherDashboard: React.FC = () => {
                               <Tooltip contentStyle={{fontSize: '10px', padding: '2px 5px'}} itemStyle={{fontSize: '10px', padding: '0px'}}/> 
                               <Line type="monotone" dataKey="avgTemp" stroke="#3b82f6" strokeWidth={1.5} dot={{ r: 2}} name="Avg Temp" /> 
                             </LineChart> 
-                            </ResponsiveContainer> <p className='text-xs text-gray-500 mt-1'> Projected 2050 ΔT: <span className='font-medium text-red-600'>+{selectedHex.projectedTempChange2050?.toFixed(1)}°C</span> </p> </div> )}
+                            </ResponsiveContainer> 
+                            {/* Projection Date Picker*/}
+                            <div className="mt-4">
+                              <label htmlFor="datePicker" className="text-sm font-medium text-gray-600">
+                                Select a Date for Prediction:
+                              </label>
+                              <input
+                                type="date"
+                                id="datePicker"
+                                className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md"
+                                value={selectedDate} 
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                              />
+                            </div>
+                            <div className="mt-4">
+                              <label htmlFor="timePicker" className="text-sm font-medium text-gray-600">
+                                Select a Time for Prediction:
+                              </label>
+                              <input
+                                type="time"
+                                id="timePicker"
+                                className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md"
+                                value={selectedTime}  // Bind to the selectedTime state
+                                onChange={(e) => setSelectedTime(e.target.value)}  // Update the state when the user selects a time
+                              />
+                            </div>
+                            {isLoadingHexDetail ? (
+                              <div className="flex justify-center items-center">
+                                <div className="w-6 h-6 border-4 border-t-4 border-gray-300 border-solid rounded-full animate-spin border-t-blue-500"></div> {/* Loading spinner */}
+                              </div>
+                            ) : (
+                              <>
+                                {/* Projection Button */}
+                                <div className="mt-4">
+                                  <button
+                                    onClick={handleProjectionInClick}
+                                    className="w-full flex items-center justify-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                                  >
+                                    <span>Predict The Temp</span>
+                                  </button>
+                                </div>
+                                {selectedHex.projectedTempChange && selectedHex.projectedTempChange !== 0 && (
+                                  <div className="mt-4">
+                                    <p className="text-sm text-gray-600">
+                                      Projected Temp in {selectedDate}: <strong>{selectedHex.projectedTempChange.toFixed(1)}°C</strong>
+                                    </p>
+                                  </div>
+                                )}
+                                
+                              </>
+                            )}
+                            </div> )}
                       </> )}
                   </div>
                   <div className='mt-auto p-3 pt-3 border-t border-gray-200 flex-shrink-0'>
