@@ -106,48 +106,40 @@ class DataExtractor:
 
         return climate_df, geometry_gdf
     
-
-    def aggregate_h3_australia(self, df, resolution=6):
-        """
-        Aggregates climate data into hexagonal grids using h3 indexing, 
-        and filters to hexes within Australia based on suburb shapefile.
-
-        Args:
-            df (pd.DataFrame): Contains at least 'lat', 'lon', and climate variables.
-            resolution (int): H3 hex resolution (default=6, ~9 km² per hex).
-
-        Returns:
-            hex_climate_df (pd.DataFrame): hex_id and aggregated climate variables.
-            hex_geometry_gdf (gpd.GeoDataFrame): hex_id and polygon geometries within Australia.
-        """
+    def aggregate_h3_australia(self, df, suburb_polygons, resolution=6):
         df = df.copy()
 
         # Assign hex IDs
-        df['hex_id'] = df.apply(lambda row: h3.geo_to_h3(row['lat'], row['lon'], resolution), axis=1)
+        df['hex_id'] = df.apply(
+            lambda row: h3.latlng_to_cell(row['lat'], row['lon'], resolution), axis=1
+        )
 
         # Aggregate climate variables
         climate_vars = df.columns.drop(['lat', 'lon', 'hex_id']).tolist()
-        hex_climate_df = df.groupby('hex_id')[climate_vars].mean().reset_index()
+        aggregated_df = df.groupby('hex_id')[climate_vars].mean().reset_index()
 
-        # Generate hex polygons
-        hex_geometry_gdf = gpd.GeoDataFrame({
-            'hex_id': hex_climate_df['hex_id'],
-            'geometry': hex_climate_df['hex_id'].apply(
-                lambda hex_id: Polygon(h3.h3_to_geo_boundary(hex_id, geo_json=True))
+        # Generate hexagon polygons
+        aggregated_df['geometry'] = aggregated_df['hex_id'].apply(
+            lambda hex_id: Polygon(
+                [(lng, lat) for lat, lng in h3.cell_to_boundary(hex_id)]
             )
-        }, crs="EPSG:4326")
+        )
 
-        # Load Australian suburb shapefile and dissolve to create national boundary
-        suburbs_gdf = gpd.read_file("../../data/raw/SAL_2021_AUST_GDA2020.shp").to_crs("EPSG:4326")
-        australia_boundary = suburbs_gdf.unary_union
+        aggregated_gdf = gpd.GeoDataFrame(aggregated_df, geometry='geometry', crs='EPSG:4326')
 
-        # Filter hexes to those intersecting with Australia boundary
-        hex_geometry_gdf = hex_geometry_gdf[hex_geometry_gdf.geometry.intersects(australia_boundary)].reset_index(drop=True)
+        # Fast spatial join instead of unary_union
+        aggregated_gdf = gpd.sjoin(
+            aggregated_gdf, suburb_polygons[['geometry']],
+            predicate='intersects', how='inner'
+        ).drop(columns=['index_right']).drop_duplicates(subset='hex_id')
 
-        # Now filter hex_climate_df to match filtered hex_geometry_gdf
-        hex_climate_df = hex_climate_df[hex_climate_df['hex_id'].isin(hex_geometry_gdf['hex_id'])].reset_index(drop=True)
+        # Separate data and geometry
+        hexagon_polygons = aggregated_gdf[['hex_id', 'geometry']].copy()
+        hexagon_data = aggregated_gdf.drop(columns='geometry')
 
-        return hex_climate_df, hex_geometry_gdf
+        return hexagon_data, hexagon_polygons
+
+
 
     
     def _build_df(self, variable, n):
