@@ -17,7 +17,10 @@ interface TrendPoint {
 }
 
 const TrendGraphPanel: React.FC = () => {
+    const [searchInput, setSearchInput] = useState('Clayton');
     const [suburb, setSuburb] = useState('Clayton');
+    const [suggestions, setSuggestions] = useState<SuburbOption[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
     const [variable, setVariable] = useState<'tmax' | 'tmin' | 'precip'>('tmax');
     const [yearRange, setYearRange] = useState<5 | 10>(10);
     const [season, setSeason] = useState<'Summer' | 'Autumn' | 'Winter' | 'Spring'>('Summer');
@@ -29,11 +32,37 @@ const TrendGraphPanel: React.FC = () => {
     // Fetch suburb options once
     useEffect(() => {
         axios.get('http://localhost:3001/api/suburbs')
-            .then(res => setSuburbs(res.data))
+            .then(res => {
+                setSuburbs(res.data);
+                setSuggestions(res.data.slice(0, 5)); // Show first 5 suggestions by default
+            })
             .catch(() => console.error('Failed to fetch suburbs'));
     }, []);
 
-    // Fetch trend data based on selected suburb/metric/season
+    // Handle search input changes
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setSearchInput(value);
+
+        if (value.length > 2) {
+            const filtered = suburbs.filter(s =>
+                s.displayName.toLowerCase().includes(value.toLowerCase())
+            );
+            setSuggestions(filtered.slice(0, 5));
+            setShowSuggestions(true);
+        } else {
+            setShowSuggestions(false);
+        }
+    };
+
+    // Handle suburb selection from suggestions
+    const handleSuburbSelect = (selectedSuburb: string) => {
+        setSuburb(selectedSuburb);
+        setSearchInput(selectedSuburb);
+        setShowSuggestions(false);
+    };
+
+    // Fetch trend data based on selected filters
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
@@ -84,20 +113,31 @@ const TrendGraphPanel: React.FC = () => {
         <div className="flex flex-col h-full p-4 space-y-4 min-w-[640px]">
             {/* Filters */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {/* Suburb Selector */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Suburb</label>
-                    <select
-                        value={suburb}
-                        onChange={(e) => setSuburb(e.target.value)}
+                {/* Suburb Search Bar */}
+                <div className="relative">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Search Suburb</label>
+                    <input
+                        type="text"
+                        value={searchInput}
+                        onChange={handleSearchChange}
+                        onFocus={() => setShowSuggestions(true)}
+                        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                        placeholder="Type suburb name..."
                         className="w-full p-2 border rounded-md"
-                    >
-                        {suburbs.map((s) => (
-                            <option key={s.name} value={s.name}>
-                                {s.displayName}
-                            </option>
-                        ))}
-                    </select>
+                    />
+                    {showSuggestions && suggestions.length > 0 && (
+                        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg">
+                            {suggestions.map((s) => (
+                                <div
+                                    key={s.displayName}
+                                    className="p-2 hover:bg-gray-100 cursor-pointer"
+                                    onClick={() => handleSuburbSelect(s.displayName)}
+                                >
+                                    {s.displayName}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Metric Selector */}
@@ -156,7 +196,7 @@ const TrendGraphPanel: React.FC = () => {
                 ) : error ? (
                     <div className="text-center text-red-500">{error}</div>
                 ) : data.length === 0 ? (
-                    <div className="text-center text-gray-500">No data available for this selection.</div>
+                    <div className="text-center text-gray-500">No data available for {suburb}</div>
                 ) : (
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={data}>
