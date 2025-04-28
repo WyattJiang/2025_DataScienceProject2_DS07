@@ -51,7 +51,7 @@ const generateMockHexDataForClayton = (resolution: number): { [key: string]: any
             h3Index: index,
             coordinates: coordinates,
             lat, lon,
-            temperature: 18 + Math.random() * tempVariance,
+            temperature: 5 + Math.random() * (36 - 10),
             soilMoisture: 0.2 + Math.random() * 0.4,
             rainfall_24h: Math.random() * (resolution < 10 ? 5 : 3),
             frostRisk: Math.random() < 0.1 ? 'Moderate' : 'Low',
@@ -63,7 +63,12 @@ const generateMockHexDataForClayton = (resolution: number): { [key: string]: any
             floodRisk: Math.random() < 0.02 ? 'Low' : 'Very Low',
             solarIrradiance: 4 + Math.random() * 1.5,
             historicalTemp: Array.from({ length: 12 }, (_, i) => ({ month: i + 1, avgTemp: 12 + Math.random() * 8 + Math.sin(i / 1.9) * 6 })),
-            projectedTempChange: 0,
+            projectedAvgTemp: 0,
+            projectedMinTemp: 0,
+            projectedMaxTemp: 0,
+            projectedSoil: 0,
+            projectedFire: 0,
+            projectedAir: 0,
         };
     });
     console.log(`Generated ${Object.keys(data).length} hexagons.`);
@@ -127,6 +132,7 @@ const WeatherDashboard: React.FC = () => {
   // Prediction Model
   const genAI = new GoogleGenerativeAI("AIzaSyDn_pPZRN1RihRU1Dk63rygqPXDTvqVVJI");
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const [selectedPrediction, setSelectedPrediction] = useState<string>('averageTemperature');
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const today = new Date();
     const year = today.getFullYear();
@@ -134,6 +140,7 @@ const WeatherDashboard: React.FC = () => {
     const day = today.getDate().toString().padStart(2, '0'); // Day is 1-based
     return `${year}-${month}-${day}`; // Format to YYYY-MM-DD
   });
+  const [showPrediction, setShowPrediction] = useState<boolean>(false);
   const [isLoadingHexDetail, setIsLoadingHexDetail] = useState<boolean>(false);
   const [selectedTime, setSelectedTime] = useState<string>("12:00");  // Default to noon
 
@@ -225,6 +232,7 @@ const WeatherDashboard: React.FC = () => {
     if (activeAppPage === 'chatbot') {
        setActiveAppPage('dashboard');
     }
+    setShowPrediction(false);
   };
 
   // Add this function to handle button click
@@ -236,50 +244,69 @@ const WeatherDashboard: React.FC = () => {
     try {
       setIsLoadingHexDetail(true);  // Start mini loading in Hex Detail Panel
 
-      const prompt =
-      "Give me an educated guess of the average maximum (NO EXPLANATION) temperature for this \ndate: "+selectedDate+
-      "\ntime:"+selectedTime+"\nlatitude:"+lat+"\nlongitude: "+lon+
-      "\nDo account for global warming if date chosen is in the future";
+      // Construct the prompt based on the selected prediction type
+      const prompt = `ONLY GIVE ME THE FLOAT VALUE of the ${selectedPrediction} for this \ndate: ${selectedDate}\n` +
+                     `time: ${selectedTime}\nlatitude: ${lat}\nlongitude: ${lon}\n` +
+                     "Note the date and location for seasons during prediction.";
+
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      console.log(prompt)
-      console.log("This is the new projected temp: "+response.text());
-      // Extract the numeric temperature change from the response
-      let tempChange = 0;
-      let tempchgstr = "";
+      // Extract numeric data from the response
+      let predictionValue = 0;
+      let predictionStr = "";
 
-      // Loop through each character in the responseText and extract numeric characters
+      // Loop through the response text and extract numeric characters
       for (let char of response.text()) {
-        if (/\-|\d|\./.test(char)) {  // Check if character is a number
-          tempchgstr += char;
+        if (/\-|\d|\./.test(char)) {  // Check if the character is a number
+          predictionStr += char;
         }
       }
-      // Convert the extracted string to an integer
-      tempChange = parseFloat(tempchgstr);
-      // console.log(tempChange)
-      if (!isNaN(tempChange)) {
+
+      let predictionType = "";
+      if (selectedPrediction === "averageTemperature") {
+        predictionType = "projectedAvgTemp";
+      } else if (selectedPrediction === "minTemperature") {
+        predictionType = "projectedMinTemp";
+      } else if (selectedPrediction === "maxTemperature") {
+        predictionType = "projectedMaxTemp";
+      } else if (selectedPrediction === "soilMoisture") {
+        predictionType = "projectedSoil";
+      } else if (selectedPrediction === "fireRiskIndex") {
+        predictionType = "projectedFire";
+      } else if (selectedPrediction === "airQuality") {
+        predictionType = "projectedAir";
+      } 
+
+      // Convert the extracted string to a float
+      predictionValue = parseFloat(predictionStr);
+
+      // If a valid prediction was extracted, update the selected hex data
+      if (!isNaN(predictionValue)) {
         const updatedHexData = {
           ...selectedHex,
-          projectedTempChange: tempChange,
+          [predictionType]: predictionValue,  // Dynamically update based on prediction type
         };
-
-        // Update hex data state
         setSelectedHex(updatedHexData);
       } else {
+        // If extraction fails, set a fallback value
         const updatedHexData = {
           ...selectedHex,
-          projectedTempChange: 22 + Math.random() * 1 + Math.random() * 0.5,  // Set the projected temperature change
+          [predictionType]: 22 + Math.random() * 1 + Math.random() * 0.5,  // Fallback random value
         };
-
-        // Update hex data state
-        setSelectedHex(updatedHexData);  // Update selectedHex with a random temp change
+        setSelectedHex(updatedHexData);  // Update selectedHex with a random value
       }
     } catch (error) {
-      console.error("Error predicting temperature change:", error);
+      console.error("Error predicting:", error);
     } finally {
       setIsLoadingHexDetail(false);  // End mini loading in Hex Detail Panel
+      setShowPrediction(true);
     }
   };
+
+  const handleChangePredType = (type: any) => {
+    setSelectedPrediction(type);
+    setShowPrediction(false);
+  }
 
 
 
@@ -531,6 +558,22 @@ const WeatherDashboard: React.FC = () => {
                             </ResponsiveContainer>
                             {/* Projection Date Picker*/}
                             <div className="mt-4">
+                            <label htmlFor="predictionType" className="text-sm font-medium text-gray-600">
+                                Select Prediction Type:
+                              </label>
+                              <select
+                                id="predictionType"
+                                className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md"
+                                value={selectedPrediction}
+                                onChange={(e) => handleChangePredType(e.target.value)}
+                              >
+                                <option value="averageTemperature">Average Temperature</option>
+                                <option value="minTemperature">Minimum Temperature</option>
+                                <option value="maxTemperature">Maximum Temperature</option>
+                                <option value="soilMoisture">Soil Moisture</option>
+                                <option value="fireRiskIndex">Fire Risk Index</option>
+                                <option value="airQuality">Air Quality</option>
+                              </select>
                               <label htmlFor="datePicker" className="text-sm font-medium text-gray-600">
                                 Select a Date for Prediction:
                               </label>
@@ -566,14 +609,29 @@ const WeatherDashboard: React.FC = () => {
                                     onClick={handleProjectionInClick}
                                     className="w-full flex items-center justify-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                                   >
-                                    <span>Predict The Temp</span>
+                                    <span>Predict</span>
                                   </button>
                                 </div>
-                                {selectedHex.projectedTempChange && selectedHex.projectedTempChange !== 0 && (
+                                {showPrediction && (
                                   <div className="mt-4">
-                                    <p className="text-sm text-gray-600">
-                                      Projected Temp in {selectedDate}: <strong>{selectedHex.projectedTempChange.toFixed(1)}°C</strong>
-                                    </p>
+                                    {selectedPrediction === 'averageTemperature' && selectedHex?.temperature && (
+                                      <p><span className="font-medium text-gray-600 w-28 inline-block">Predicted Average Temperature:</span> {selectedHex.projectedAvgTemp.toFixed(1)} °C</p>
+                                    )}
+                                    {selectedPrediction === 'minTemperature' && selectedHex?.temperature && (
+                                      <p><span className="font-medium text-gray-600 w-28 inline-block">Predicted Minimum Temperature:</span> {selectedHex.projectedMinTemp.toFixed(1)} °C</p>
+                                    )}
+                                    {selectedPrediction === 'maxTemperature' && selectedHex?.temperature && (
+                                      <p><span className="font-medium text-gray-600 w-28 inline-block">Predicted Maximum Temperature:</span> {selectedHex.projectedMaxTemp.toFixed(1)} °C</p>
+                                    )}
+                                    {selectedPrediction === 'soilMoisture' && selectedHex?.soilMoisture && (
+                                      <p><span className="font-medium text-gray-600 w-28 inline-block">Predicted Soil Moisture:</span> {selectedHex.projectedSoil.toFixed(2)}</p>
+                                    )}
+                                    {selectedPrediction === 'fireRiskIndex' && selectedHex?.fireRiskIndex && (
+                                      <p><span className="font-medium text-gray-600 w-28 inline-block">Predicted Fire Risk Index:</span> {selectedHex.projectedFire.toFixed(0)}</p>
+                                    )}
+                                    {selectedPrediction === 'airQuality' && selectedHex?.airQualityIndex && (
+                                      <p><span className="font-medium text-gray-600 w-28 inline-block">Predicted Air Quality:</span> {selectedHex.projectedAir.toFixed(0)} AQI</p>
+                                    )}
                                   </div>
                                 )}
 
