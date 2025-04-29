@@ -16,6 +16,7 @@ export const ROLES_CONFIG: Record<UserRole, RoleConfig> = {
       soilMoisture: false,
       fireRiskIndex: false,
       urbanHeatIntensity: false,
+      trendGraph: false //added for trend graph
 
     },
     displayName: 'General Public',
