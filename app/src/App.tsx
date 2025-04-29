@@ -12,6 +12,8 @@ import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet'; // Added MapCo
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+//ADDED FOR TREND GRAPH
+import { ChartLine } from 'lucide-react';
 
 // Import Config and Role Types - *** Corrected: Removed DEFAULT_ROLE import ***
 import {
@@ -20,6 +22,7 @@ import {
 } from './config';
 
 // Import Page/UI Components (kept separate)
+import TrendGraphPanel from './TrendGraphPanel'; //ADDED FOR TREND GRAPH
 import LoginPage from './LoginPage'; // Handles login UI
 import ProfilePage from './ProfilePage'; // Handles profile/role selection UI
 // Import ChatPage if needed by ChatPanel
@@ -48,7 +51,7 @@ const generateMockHexDataForClayton = (resolution: number): { [key: string]: any
             h3Index: index,
             coordinates: coordinates,
             lat, lon,
-            temperature: 18 + Math.random() * tempVariance,
+            temperature: 5 + Math.random() * (36 - 10),
             soilMoisture: 0.2 + Math.random() * 0.4,
             rainfall_24h: Math.random() * (resolution < 10 ? 5 : 3),
             frostRisk: Math.random() < 0.1 ? 'Moderate' : 'Low',
@@ -60,7 +63,12 @@ const generateMockHexDataForClayton = (resolution: number): { [key: string]: any
             floodRisk: Math.random() < 0.02 ? 'Low' : 'Very Low',
             solarIrradiance: 4 + Math.random() * 1.5,
             historicalTemp: Array.from({ length: 12 }, (_, i) => ({ month: i + 1, avgTemp: 12 + Math.random() * 8 + Math.sin(i / 1.9) * 6 })),
-            projectedTempChange: 0,
+            projectedAvgTemp: 0,
+            projectedMinTemp: 0,
+            projectedMaxTemp: 0,
+            projectedSoil: 0,
+            projectedFire: 0,
+            projectedAir: 0,
         };
     });
     console.log(`Generated ${Object.keys(data).length} hexagons.`);
@@ -124,6 +132,7 @@ const WeatherDashboard: React.FC = () => {
   // Prediction Model
   const genAI = new GoogleGenerativeAI("AIzaSyDn_pPZRN1RihRU1Dk63rygqPXDTvqVVJI");
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const [selectedPrediction, setSelectedPrediction] = useState<string>('averageTemperature');
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const today = new Date();
     const year = today.getFullYear();
@@ -131,6 +140,7 @@ const WeatherDashboard: React.FC = () => {
     const day = today.getDate().toString().padStart(2, '0'); // Day is 1-based
     return `${year}-${month}-${day}`; // Format to YYYY-MM-DD
   });
+  const [showPrediction, setShowPrediction] = useState<boolean>(false);
   const [isLoadingHexDetail, setIsLoadingHexDetail] = useState<boolean>(false);
   const [selectedTime, setSelectedTime] = useState<string>("12:00");  // Default to noon
 
@@ -207,7 +217,8 @@ const WeatherDashboard: React.FC = () => {
     setActiveLayers(prev => {
         const newActiveLayers = { ...prev };
         const currentlyActive = newActiveLayers[layerKey];
-         Object.keys(newActiveLayers).forEach(key => { newActiveLayers[key] = false; });
+        console.log('Toggling:', layerKey, 'Was:', currentlyActive); // ✅ ADDED FOR TREND GRAPH
+        Object.keys(newActiveLayers).forEach(key => { newActiveLayers[key] = false; });
         newActiveLayers[layerKey] = !currentlyActive;
         return newActiveLayers;
     });
@@ -221,6 +232,7 @@ const WeatherDashboard: React.FC = () => {
     if (activeAppPage === 'chatbot') {
        setActiveAppPage('dashboard');
     }
+    setShowPrediction(false);
   };
 
   // Add this function to handle button click
@@ -230,52 +242,71 @@ const WeatherDashboard: React.FC = () => {
     const { lat, lon } = selectedHex;
 
     try {
-      setIsLoadingHexDetail(true);  // Start mini loading in Hex Detail Panel 
+      setIsLoadingHexDetail(true);  // Start mini loading in Hex Detail Panel
 
-      const prompt = 
-      "Give me an educated guess of the average maximum (NO EXPLANATION) temperature for this \ndate: "+selectedDate+
-      "\ntime:"+selectedTime+"\nlatitude:"+lat+"\nlongitude: "+lon+
-      "\nDo account for global warming if date chosen is in the future";
-      const result = await model.generateContent(prompt);  
+      // Construct the prompt based on the selected prediction type
+      const prompt = `ONLY GIVE ME THE FLOAT VALUE of the ${selectedPrediction} for this \ndate: ${selectedDate}\n` +
+                     `time: ${selectedTime}\nlatitude: ${lat}\nlongitude: ${lon}\n` +
+                     "Note the date and location for seasons during prediction.";
+
+      const result = await model.generateContent(prompt);
       const response = await result.response;
-      console.log(prompt)
-      console.log("This is the new projected temp: "+response.text());
-      // Extract the numeric temperature change from the response
-      let tempChange = 0;
-      let tempchgstr = "";
+      // Extract numeric data from the response
+      let predictionValue = 0;
+      let predictionStr = "";
 
-      // Loop through each character in the responseText and extract numeric characters
+      // Loop through the response text and extract numeric characters
       for (let char of response.text()) {
-        if (/\-|\d|\./.test(char)) {  // Check if character is a number
-          tempchgstr += char;
+        if (/\-|\d|\./.test(char)) {  // Check if the character is a number
+          predictionStr += char;
         }
       }
-      // Convert the extracted string to an integer
-      tempChange = parseFloat(tempchgstr);
-      // console.log(tempChange)
-      if (!isNaN(tempChange)) {
+
+      let predictionType = "";
+      if (selectedPrediction === "averageTemperature") {
+        predictionType = "projectedAvgTemp";
+      } else if (selectedPrediction === "minTemperature") {
+        predictionType = "projectedMinTemp";
+      } else if (selectedPrediction === "maxTemperature") {
+        predictionType = "projectedMaxTemp";
+      } else if (selectedPrediction === "soilMoisture") {
+        predictionType = "projectedSoil";
+      } else if (selectedPrediction === "fireRiskIndex") {
+        predictionType = "projectedFire";
+      } else if (selectedPrediction === "airQuality") {
+        predictionType = "projectedAir";
+      } 
+
+      // Convert the extracted string to a float
+      predictionValue = parseFloat(predictionStr);
+
+      // If a valid prediction was extracted, update the selected hex data
+      if (!isNaN(predictionValue)) {
         const updatedHexData = {
           ...selectedHex,
-          projectedTempChange: tempChange,  
+          [predictionType]: predictionValue,  // Dynamically update based on prediction type
         };
-  
-        // Update hex data state
         setSelectedHex(updatedHexData);
       } else {
+        // If extraction fails, set a fallback value
         const updatedHexData = {
           ...selectedHex,
-          projectedTempChange: 22 + Math.random() * 1 + Math.random() * 0.5,  // Set the projected temperature change
+          [predictionType]: 22 + Math.random() * 1 + Math.random() * 0.5,  // Fallback random value
         };
-  
-        // Update hex data state
-        setSelectedHex(updatedHexData);  // Update selectedHex with a random temp change
+        setSelectedHex(updatedHexData);  // Update selectedHex with a random value
       }
     } catch (error) {
-      console.error("Error predicting temperature change:", error);
+      console.error("Error predicting:", error);
     } finally {
       setIsLoadingHexDetail(false);  // End mini loading in Hex Detail Panel
+      setShowPrediction(true);
     }
   };
+
+  const handleChangePredType = (type: any) => {
+    setSelectedPrediction(type);
+    setShowPrediction(false);
+  }
 
 
 
@@ -364,7 +395,22 @@ const WeatherDashboard: React.FC = () => {
                     <MessageSquare className="mr-3 h-5 w-5 flex-shrink-0" /> Chat Assistant
                 </button>
               </div>
-              <div className="pt-2">
+
+                {/* ADDED FOR TREND GRAPH */}
+                <div className="pt-2">
+                    <h3 className="px-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Trend Graph</h3>
+                    <button
+                        onClick={() => toggleLayer('trendGraph')}
+                        className={`w-full text-left p-2.5 text-sm rounded-md flex items-center transition-colors duration-150 ${
+                            activeLayers.trendGraph ? 'bg-purple-100 text-purple-700 font-medium' : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                    >
+                        <ChartLine className="mr-3 h-5 w-5 flex-shrink-0" /> Trend Graphs
+                    </button>
+                </div>
+
+
+                <div className="pt-2">
                  <h3 className="px-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Data Layers</h3>
                  {Object.keys(ROLES_CONFIG.general_public.defaultLayers).map(layerKey => {
                      const Icon = { temperature: Thermometer, soilMoisture: Droplets, fireRiskIndex: Flame, urbanHeatIntensity: Sun }[layerKey] || Filter;
@@ -374,6 +420,8 @@ const WeatherDashboard: React.FC = () => {
                          : 'text-gray-600 hover:bg-gray-100';
                      return ( <button key={layerKey} onClick={() => toggleLayer(layerKey)} className={`w-full text-left p-2.5 text-sm rounded-md flex items-center transition-colors duration-150 ${colors}`}> <Icon className="mr-3 h-5 w-5 flex-shrink-0" /> {title} </button> );
                  })}
+
+
               </div>
               <div className="pt-2">
                 <h3 className="px-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Decision Tools</h3>
@@ -484,6 +532,9 @@ const WeatherDashboard: React.FC = () => {
                       <h3 className="text-base font-semibold text-gray-800 truncate" title={selectedHex.h3Index}> Hex: {selectedHex.h3Index.substring(selectedHex.h3Index.length - 4)} (Res {h3Resolution}) </h3>
                       <button onClick={closeDetails} className="text-gray-400 hover:text-gray-600 ml-2 p-1" title="Close Details"> <X className="w-5 h-5" /> </button>
                   </div>
+
+
+
                   <div className="flex-1 overflow-y-auto space-y-3 text-sm p-3 pr-1 custom-scrollbar">
                       {activeTool === 'cropPlanner' && ( <div className="p-3 bg-blue-50 rounded border border-blue-200 text-sm"><h4 className="font-medium mb-1 text-blue-600">Crop Planner (Demo)</h4> Suitable for {currentUserRole === 'farmer' ? 'your needs' : 'farmers'}. GDD: {selectedHex.gdd?.toFixed(1)}, Soil: {selectedHex.soilMoisture?.toFixed(2)}...</div> )}
                       {activeTool === 'heatMitigation' && ( <div className="p-3 bg-orange-50 rounded border border-orange-200 text-sm"><h4 className="font-medium mb-1 text-orange-600">Heat Mitigation (Demo)</h4> Relevant for {currentUserRole === 'urban_planner' ? 'your analysis' : 'planners'}. Heat Intensity: {selectedHex.urbanHeatIntensity?.toFixed(1)}°C...</div> )}
@@ -495,18 +546,34 @@ const WeatherDashboard: React.FC = () => {
                           {selectedHex.fireRiskIndex !== undefined && (currentUserRole === 'farmer' || currentUserRole === 'general_public') && (<p><span className='font-medium text-gray-600 w-28 inline-block'>Fire Risk Index:</span> {selectedHex.fireRiskIndex?.toFixed(0)}</p>)}
                           {selectedHex.airQualityIndex !== undefined && (<p><span className='font-medium text-gray-600 w-28 inline-block'>Air Quality:</span> {selectedHex.airQualityIndex?.toFixed(0)} AQI</p>)}
                           {selectedHex.windSpeed !== undefined && (<p><span className='font-medium text-gray-600 w-28 inline-block'>Wind Speed:</span> {selectedHex.windSpeed?.toFixed(1)} km/h</p>)}
-                          {selectedHex.historicalTemp && ( <div className='mt-4 pt-4 border-t border-gray-200'> <h4 className="font-medium mb-2 text-gray-700 text-xs uppercase">Historical Avg. Temp (°C)</h4> 
-                          <ResponsiveContainer width="100%" height={120}> 
-                            <LineChart data={selectedHex.historicalTemp} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}> 
-                              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb"/> 
-                              <XAxis dataKey="month" fontSize={9} tick={{ fill: '#6b7280' }}/> 
-                              <YAxis fontSize={9} tick={{ fill: '#6b7280' }}/> 
-                              <Tooltip contentStyle={{fontSize: '10px', padding: '2px 5px'}} itemStyle={{fontSize: '10px', padding: '0px'}}/> 
-                              <Line type="monotone" dataKey="avgTemp" stroke="#3b82f6" strokeWidth={1.5} dot={{ r: 2}} name="Avg Temp" /> 
-                            </LineChart> 
-                            </ResponsiveContainer> 
+                          {selectedHex.historicalTemp && ( <div className='mt-4 pt-4 border-t border-gray-200'> <h4 className="font-medium mb-2 text-gray-700 text-xs uppercase">Historical Avg. Temp (°C)</h4>
+                          <ResponsiveContainer width="100%" height={120}>
+                            <LineChart data={selectedHex.historicalTemp} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb"/>
+                              <XAxis dataKey="month" fontSize={9} tick={{ fill: '#6b7280' }}/>
+                              <YAxis fontSize={9} tick={{ fill: '#6b7280' }}/>
+                              <Tooltip contentStyle={{fontSize: '10px', padding: '2px 5px'}} itemStyle={{fontSize: '10px', padding: '0px'}}/>
+                              <Line type="monotone" dataKey="avgTemp" stroke="#3b82f6" strokeWidth={1.5} dot={{ r: 2}} name="Avg Temp" />
+                            </LineChart>
+                            </ResponsiveContainer>
                             {/* Projection Date Picker*/}
                             <div className="mt-4">
+                            <label htmlFor="predictionType" className="text-sm font-medium text-gray-600">
+                                Select Prediction Type:
+                              </label>
+                              <select
+                                id="predictionType"
+                                className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md"
+                                value={selectedPrediction}
+                                onChange={(e) => handleChangePredType(e.target.value)}
+                              >
+                                <option value="averageTemperature">Average Temperature</option>
+                                <option value="minTemperature">Minimum Temperature</option>
+                                <option value="maxTemperature">Maximum Temperature</option>
+                                <option value="soilMoisture">Soil Moisture</option>
+                                <option value="fireRiskIndex">Fire Risk Index</option>
+                                <option value="airQuality">Air Quality</option>
+                              </select>
                               <label htmlFor="datePicker" className="text-sm font-medium text-gray-600">
                                 Select a Date for Prediction:
                               </label>
@@ -514,7 +581,7 @@ const WeatherDashboard: React.FC = () => {
                                 type="date"
                                 id="datePicker"
                                 className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md"
-                                value={selectedDate} 
+                                value={selectedDate}
                                 onChange={(e) => setSelectedDate(e.target.value)}
                               />
                             </div>
@@ -542,17 +609,32 @@ const WeatherDashboard: React.FC = () => {
                                     onClick={handleProjectionInClick}
                                     className="w-full flex items-center justify-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                                   >
-                                    <span>Predict The Temp</span>
+                                    <span>Predict</span>
                                   </button>
                                 </div>
-                                {selectedHex.projectedTempChange && selectedHex.projectedTempChange !== 0 && (
+                                {showPrediction && (
                                   <div className="mt-4">
-                                    <p className="text-sm text-gray-600">
-                                      Projected Temp in {selectedDate}: <strong>{selectedHex.projectedTempChange.toFixed(1)}°C</strong>
-                                    </p>
+                                    {selectedPrediction === 'averageTemperature' && selectedHex?.temperature && (
+                                      <p><span className="font-medium text-gray-600 w-28 inline-block">Predicted Average Temperature:</span> {selectedHex.projectedAvgTemp.toFixed(1)} °C</p>
+                                    )}
+                                    {selectedPrediction === 'minTemperature' && selectedHex?.temperature && (
+                                      <p><span className="font-medium text-gray-600 w-28 inline-block">Predicted Minimum Temperature:</span> {selectedHex.projectedMinTemp.toFixed(1)} °C</p>
+                                    )}
+                                    {selectedPrediction === 'maxTemperature' && selectedHex?.temperature && (
+                                      <p><span className="font-medium text-gray-600 w-28 inline-block">Predicted Maximum Temperature:</span> {selectedHex.projectedMaxTemp.toFixed(1)} °C</p>
+                                    )}
+                                    {selectedPrediction === 'soilMoisture' && selectedHex?.soilMoisture && (
+                                      <p><span className="font-medium text-gray-600 w-28 inline-block">Predicted Soil Moisture:</span> {selectedHex.projectedSoil.toFixed(2)}</p>
+                                    )}
+                                    {selectedPrediction === 'fireRiskIndex' && selectedHex?.fireRiskIndex && (
+                                      <p><span className="font-medium text-gray-600 w-28 inline-block">Predicted Fire Risk Index:</span> {selectedHex.projectedFire.toFixed(0)}</p>
+                                    )}
+                                    {selectedPrediction === 'airQuality' && selectedHex?.airQualityIndex && (
+                                      <p><span className="font-medium text-gray-600 w-28 inline-block">Predicted Air Quality:</span> {selectedHex.projectedAir.toFixed(0)} AQI</p>
+                                    )}
                                   </div>
                                 )}
-                                
+
                               </>
                             )}
                             </div> )}
@@ -568,6 +650,26 @@ const WeatherDashboard: React.FC = () => {
                   </div>
               </div>
           )}
+
+            {/* Trend Graph Modal (ADDED FOR TREND GRAPH) */}
+            {/* Trend Graph Panel (Right Side) */}
+            {/* In App.tsx where you render TrendGraphPanel */}
+            {activeLayers.trendGraph && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-[1000] flex items-center justify-center">
+                    <div className="bg-white w-[90vw] h-[90vh] rounded-lg shadow-xl p-4 relative overflow-hidden">
+                        <button
+                            onClick={() => toggleLayer('trendGraph')}
+                            className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+                            title="Close"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+                        <h2 className="text-xl font-semibold mb-4">Trend Graph (Test Fullscreen)</h2>
+                        <TrendGraphPanel />
+                    </div>
+                </div>
+            )}
+
 
         </div> {/* End Content Area */}
       </div> {/* End Main Content Flex Container */}
