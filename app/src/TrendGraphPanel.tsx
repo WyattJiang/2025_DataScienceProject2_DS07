@@ -34,7 +34,7 @@ const TrendGraphPanel: React.FC = () => {
         axios.get('http://localhost:3001/api/suburbs')
             .then(res => {
                 setSuburbs(res.data);
-                setSuggestions(res.data.slice(0, 5)); // Show first 5 suggestions by default
+                setSuggestions(res.data.slice(0, 5));
             })
             .catch(() => console.error('Failed to fetch suburbs'));
     }, []);
@@ -56,13 +56,13 @@ const TrendGraphPanel: React.FC = () => {
     };
 
     // Handle suburb selection from suggestions
-    const handleSuburbSelect = (selectedSuburb: string) => {
-        setSuburb(selectedSuburb);
-        setSearchInput(selectedSuburb);
+    const handleSuburbSelect = (selectedSuburb: SuburbOption) => {
+        setSuburb(selectedSuburb.name);  // Use backend-safe "name"
+        setSearchInput(selectedSuburb.displayName); // Display nicely
         setShowSuggestions(false);
     };
 
-    // Fetch trend data based on selected filters
+    // Fetch trend data when filters change
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
@@ -75,27 +75,19 @@ const TrendGraphPanel: React.FC = () => {
                 const rawData = res.data;
                 if (!Array.isArray(rawData)) throw new Error("Invalid API response");
 
-                // Get ALL years without any filtering first
                 const allYears = rawData.map(item => item.year);
-                console.log("All available years:", [...new Set(allYears)].sort());
-
-                // Find the actual maximum year in the data
                 const maxYear = Math.max(...allYears);
-                console.log("Max year in data:", maxYear);
 
-                // Now filter based on the selected year range
                 const startYear = maxYear - yearRange + 1;
                 const filteredData = rawData
                     .filter(item => item.year >= startYear && item.year <= maxYear)
                     .sort((a, b) => a.year - b.year);
 
-                // Transform data using the selected season
                 const formatted = filteredData.map(item => ({
                     year: item.year,
                     value: item[season]?.[variable] || null
                 })).filter(item => item.value !== null);
 
-                console.log(`Displaying ${season} data:`, formatted);
                 setData(formatted);
             } catch (err) {
                 console.error("Error:", err);
@@ -121,7 +113,6 @@ const TrendGraphPanel: React.FC = () => {
                         value={searchInput}
                         onChange={handleSearchChange}
                         onFocus={() => setShowSuggestions(true)}
-                        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                         placeholder="Type suburb name..."
                         className="w-full p-2 border rounded-md"
                     />
@@ -129,9 +120,9 @@ const TrendGraphPanel: React.FC = () => {
                         <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg">
                             {suggestions.map((s) => (
                                 <div
-                                    key={s.displayName}
+                                    key={s.name}
                                     className="p-2 hover:bg-gray-100 cursor-pointer"
-                                    onClick={() => handleSuburbSelect(s.displayName)}
+                                    onMouseDown={() => handleSuburbSelect(s)} // <- onMouseDown to avoid blur conflict
                                 >
                                     {s.displayName}
                                 </div>
