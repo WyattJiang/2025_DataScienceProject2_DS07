@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>filter map</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      background-color: #f0f8ff;
+    }
+
+    .map-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .control-panel {
+      position: fixed; 
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: rgba(255, 255, 255, 0.85);
+      padding: 5px 0 10px;
+      text-align: center;
+      box-shadow: 0 -2px 6px rgba(0,0,0,0.15);
+      z-index: 999;
+      font-size: 14px;
+    }
+
+    .timeline {
+      width: 70%;
+      margin: 0 auto 5px;
+    }
+
+    .timeline input[type="range"] {
+      width: 100%;
+      -webkit-appearance: none;
+      height: 5px;
+      border-radius: 3px;
+      background: #ddd;
+      outline: none;
+    }
+
+    .timeline input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #4CAF50;
+      cursor: pointer;
+      border: 2px solid #fff;
+      box-shadow: 0 0 2px rgba(0,0,0,0.5);
+    }
+
+    .year-label {
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+
+    .season-buttons button {
+      padding: 6px 12px;
+      margin: 4px;
+      font-size: 12px;
+      border: none;
+      border-radius: 5px;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+
+    .season-buttons button:hover {
+      background-color: #45a049;
+    }
+
+    select {
+      padding: 4px 8px;
+      font-size: 12px;
+      margin-bottom: 5px;
+      border-radius: 5px;
+    }
+
+    @media screen and (max-width: 600px) {
+      .timeline {
+        width: 90%;
+      }
+
+      .season-buttons button {
+        font-size: 12px;
+        padding: 6px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="map-container">
+  <iframe id="mapFrame" src="https://s3.ap-southeast-2.amazonaws.com/climate.ds07/Maps/precip/precip_2000_Spring.html"></iframe>
+
+  <div class="control-panel">
+    <div>
+      <label for="dataType">Data type: </label>
+      <select id="dataType" onchange="onDataTypeChange()">
+        <option value="precip" selected>Precipitation</option>
+        <option value="tmax">Maximum temperature</option>
+        <option value="tmin">Minimum temperature</option>
+      </select>
+    </div>
+    
+    <div class="timeline">
+      <div class="year-label">Current year : <span id="yearDisplay">2000</span></div>
+      <input type="range" id="yearSlider" min="2000" max="2019" value="2000" oninput="onYearChange(this.value)">
+    </div>
+    
+    <div class="season-buttons">
+      <button onclick="changeSeason('Spring')">Spring</button>
+      <button onclick="changeSeason('Summer')">Summer</button>
+      <button onclick="changeSeason('Autumn')">Autumn</button>
+      <button onclick="changeSeason('Winter')">Winter</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentSeason = 'Spring';
+  let currentDataType = 'precip';
+
+  function onYearChange(year) {
+    document.getElementById('yearDisplay').textContent = year;
+    updateMap();
+  }
+
+  function changeSeason(season) {
+    currentSeason = season;
+    updateMap();
+  }
+
+  function onDataTypeChange() {
+    currentDataType = document.getElementById('dataType').value;
+    updateMap();
+  }
+
+  function updateMap() {
+    const year = document.getElementById('yearSlider').value;
+    const url = `https://s3.ap-southeast-2.amazonaws.com/climate.ds07/Maps/${currentDataType}/${currentDataType}_${year}_${currentSeason}.html`;
+    document.getElementById('mapFrame').src = url;
+  }
+</script>
+
+</body>
+</html>
