@@ -13,23 +13,22 @@ interface SuburbOption {
 
 interface TrendPoint {
     year: number;
-    value: number;
+    [key: string]: number | string;
 }
 
 const TrendGraphPanel: React.FC = () => {
-    const [searchInput, setSearchInput] = useState('Clayton');
-    const [suburb, setSuburb] = useState('Clayton');
+    const [searchInput, setSearchInput] = useState('');
+    const [selectedSuburbs, setSelectedSuburbs] = useState<string[]>(['Clayton']);
     const [suggestions, setSuggestions] = useState<SuburbOption[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [variable, setVariable] = useState<'tmax' | 'tmin' | 'precip'>('tmax');
-    const [yearRange, setYearRange] = useState<5 | 10>(10);
+    const [yearRange, setYearRange] = useState<5 | 10 | 20>(10);
     const [season, setSeason] = useState<'Summer' | 'Autumn' | 'Winter' | 'Spring'>('Summer');
     const [data, setData] = useState<TrendPoint[]>([]);
     const [suburbs, setSuburbs] = useState<SuburbOption[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Fetch suburb options once
     useEffect(() => {
         axios.get('http://localhost:3001/api/suburbs')
             .then(res => {
@@ -39,7 +38,6 @@ const TrendGraphPanel: React.FC = () => {
             .catch(() => console.error('Failed to fetch suburbs'));
     }, []);
 
-    // Handle search input changes
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setSearchInput(value);
@@ -55,40 +53,56 @@ const TrendGraphPanel: React.FC = () => {
         }
     };
 
-    // Handle suburb selection from suggestions
     const handleSuburbSelect = (selectedSuburb: SuburbOption) => {
-        setSuburb(selectedSuburb.name);  // Use backend-safe "name"
-        setSearchInput(selectedSuburb.displayName); // Display nicely
+        setSearchInput('');
         setShowSuggestions(false);
+        setSuggestions([]);
+
+        setSelectedSuburbs((prev) => {
+            if (prev.includes(selectedSuburb.name)) return prev;
+            if (prev.length >= 2) return prev;
+            return [...prev, selectedSuburb.name];
+        });
     };
 
-    // Fetch trend data when filters change
+    const removeSuburb = (name: string) => {
+        setSelectedSuburbs((prev) => prev.filter((s) => s !== name));
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             setError(null);
             try {
-                const res = await axios.get('http://localhost:3001/seasonal-data', {
-                    params: { suburb }
-                });
+                const merged: Record<number, any> = {};
 
-                const rawData = res.data;
-                if (!Array.isArray(rawData)) throw new Error("Invalid API response");
+                for (const suburb of selectedSuburbs) {
+                    const res = await axios.get('http://localhost:3001/seasonal-data', {
+                        params: { suburb }
+                    });
 
-                const allYears = rawData.map(item => item.year);
-                const maxYear = Math.max(...allYears);
+                    const rawData = res.data;
+                    if (!Array.isArray(rawData)) throw new Error("Invalid API response");
 
-                const startYear = maxYear - yearRange + 1;
-                const filteredData = rawData
-                    .filter(item => item.year >= startYear && item.year <= maxYear)
-                    .sort((a, b) => a.year - b.year);
+                    const allYears = rawData.map(item => item.year);
+                    const maxYear = Math.max(...allYears);
+                    const startYear = maxYear - yearRange + 1;
 
-                const formatted = filteredData.map(item => ({
-                    year: item.year,
-                    value: item[season]?.[variable] || null
-                })).filter(item => item.value !== null);
+                    const filteredData = rawData
+                        .filter(item => item.year >= startYear && item.year <= maxYear)
+                        .sort((a, b) => a.year - b.year);
 
-                setData(formatted);
+                    filteredData.forEach(item => {
+                        const value = item[season]?.[variable];
+                        if (value !== null && value !== undefined) {
+                            if (!merged[item.year]) merged[item.year] = { year: item.year };
+                            merged[item.year][suburb] = value;
+                        }
+                    });
+                }
+
+                const finalData = Object.values(merged).sort((a, b) => a.year - b.year);
+                setData(finalData);
             } catch (err) {
                 console.error("Error:", err);
                 setError("Failed to load data");
@@ -99,7 +113,7 @@ const TrendGraphPanel: React.FC = () => {
         };
 
         fetchData();
-    }, [suburb, variable, yearRange, season]);
+    }, [selectedSuburbs, variable, yearRange, season]);
 
     return (
         <div className="flex flex-col h-full p-4 space-y-4 min-w-[640px]">
@@ -107,7 +121,7 @@ const TrendGraphPanel: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {/* Suburb Search Bar */}
                 <div className="relative">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Search Suburb</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Search Suburb (max 2)</label>
                     <input
                         type="text"
                         value={searchInput}
@@ -122,13 +136,21 @@ const TrendGraphPanel: React.FC = () => {
                                 <div
                                     key={s.name}
                                     className="p-2 hover:bg-gray-100 cursor-pointer"
-                                    onMouseDown={() => handleSuburbSelect(s)} // <- onMouseDown to avoid blur conflict
+                                    onMouseDown={() => handleSuburbSelect(s)}
                                 >
                                     {s.displayName}
                                 </div>
                             ))}
                         </div>
                     )}
+                    <div className="mt-2 flex flex-wrap gap-2">
+                        {selectedSuburbs.map((name) => (
+                            <span key={name} className="bg-blue-100 px-2 py-1 rounded-md text-sm flex items-center gap-1">
+                                {name}
+                                <button onClick={() => removeSuburb(name)} className="text-red-500">✕</button>
+                            </span>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Metric Selector */}
@@ -160,23 +182,18 @@ const TrendGraphPanel: React.FC = () => {
                     </select>
                 </div>
 
-                {/* Year Range */}
+                {/* Year Range Selector */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Year Range</label>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setYearRange(5)}
-                            className={`flex-1 py-2 px-3 rounded-md ${yearRange === 5 ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}
-                        >
-                            5 Years
-                        </button>
-                        <button
-                            onClick={() => setYearRange(10)}
-                            className={`flex-1 py-2 px-3 rounded-md ${yearRange === 10 ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}
-                        >
-                            10 Years
-                        </button>
-                    </div>
+                    <select
+                        value={yearRange}
+                        onChange={(e) => setYearRange(parseInt(e.target.value) as 5 | 10 | 20)}
+                        className="w-full p-2 border rounded-md"
+                    >
+                        <option value={5}>5 Years</option>
+                        <option value={10}>10 Years</option>
+                        <option value={20}>20 Years</option>
+                    </select>
                 </div>
             </div>
 
@@ -187,7 +204,7 @@ const TrendGraphPanel: React.FC = () => {
                 ) : error ? (
                     <div className="text-center text-red-500">{error}</div>
                 ) : data.length === 0 ? (
-                    <div className="text-center text-gray-500">No data available for {suburb}</div>
+                    <div className="text-center text-gray-500">No data available</div>
                 ) : (
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={data}>
@@ -203,14 +220,17 @@ const TrendGraphPanel: React.FC = () => {
                             <Tooltip />
                             <Legend />
                             <ReferenceLine x={new Date().getFullYear()} stroke="gray" strokeDasharray="4 2" label="Now" />
-                            <Line
-                                type="monotone"
-                                dataKey="value"
-                                stroke="#3b82f6"
-                                strokeWidth={2}
-                                dot={{ r: 2 }}
-                                name={`${variable.toUpperCase()} (${season})`}
-                            />
+                            {selectedSuburbs.map((name, index) => (
+                                <Line
+                                    key={name}
+                                    type="monotone"
+                                    dataKey={name}
+                                    stroke={index === 0 ? '#3b82f6' : '#f97316'}
+                                    strokeWidth={2}
+                                    dot={{ r: 2 }}
+                                    name={`${name} (${season})`}
+                                />
+                            ))}
                         </LineChart>
                     </ResponsiveContainer>
                 )}
