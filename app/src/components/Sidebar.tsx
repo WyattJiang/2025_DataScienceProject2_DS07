@@ -11,6 +11,7 @@ import {
 } from '../config';
 
 type SidebarProps = {
+  userEmail: string | null;
   activePage: 'dashboard' | 'profile' | 'chatbot';
   currentUserRole: UserRole;
   activeLayers: { [key: string]: boolean };
@@ -20,6 +21,7 @@ type SidebarProps = {
 };
 
 const Sidebar: React.FC<SidebarProps> = ({
+  userEmail,
   activePage,
   currentUserRole,
   activeLayers,
@@ -27,6 +29,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onToggleLayer,
   onLogout
 }) => {
+  const username = userEmail?.split('@')[0] || 'unknown_user';
   return (
     <div className="w-60 border-r border-gray-200 bg-white flex flex-col shadow-sm flex-shrink-0">
       {/* Logo */}
@@ -129,7 +132,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <div className="flex-1 min-w-0">
             <p className={`text-sm font-medium truncate ${activePage === 'profile' ? 'text-indigo-800' : 'text-gray-800'}`} title="demo_user">
-              demo_user
+              {username}
             </p>
             <p className="text-xs text-gray-500 truncate" title={getConfigForRole(currentUserRole).displayName}>
               {getConfigForRole(currentUserRole).displayName}

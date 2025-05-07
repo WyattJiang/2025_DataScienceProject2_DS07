@@ -5,6 +5,7 @@ import ChatPanel from './ChatPanel';
 import TrendGraphModal from './TrendGraphModal';
 
 type MainContentProps = {
+  userEmail: string | null;
   activePage: 'dashboard' | 'profile' | 'chatbot';
   currentUserRole: UserRole;
   onRoleChange: (role: UserRole) => void;
@@ -15,6 +16,7 @@ type MainContentProps = {
 };
 
 const MainContent: React.FC<MainContentProps> = ({
+  userEmail,
   activePage,
   currentUserRole,
   onRoleChange,
@@ -34,6 +36,7 @@ const MainContent: React.FC<MainContentProps> = ({
       {/* --- Profile Page View --- */}
       {activePage === 'profile' && (
         <ProfilePage 
+          userEmail={userEmail}
           currentUserRole={currentUserRole} 
           onRoleChange={onRoleChange} 
           onBackToDashboard={() => onNavigate('dashboard')} 

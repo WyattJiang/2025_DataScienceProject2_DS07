@@ -4,6 +4,7 @@ import { UserRole, ROLES_CONFIG, getConfigForRole } from './config';
 import { User, ArrowLeft, Save, CheckSquare, Square } from 'lucide-react'; // Added icons
 
 interface ProfilePageProps {
+  userEmail: string | null;
   currentUserRole: UserRole;
   onRoleChange: (newRole: UserRole) => void;
   onBackToDashboard: () => void;
@@ -11,13 +12,16 @@ interface ProfilePageProps {
 }
 
 const ProfilePage: React.FC<ProfilePageProps> = ({
+  userEmail,
   currentUserRole,
   onRoleChange,
   onBackToDashboard,
+  
 }) => {
+  
   const availableRoles: UserRole[] = ['general_public', 'farmer', 'urban_planner'];
   const currentConfig = getConfigForRole(currentUserRole);
-
+  const username = userEmail?.split('@')[0] || 'unknown_user';
   // In a real app, you'd have state for unsaved changes
   // For now, selection directly calls onRoleChange
 
@@ -42,8 +46,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
         <div className="mb-6">
            <h2 className="text-lg font-medium text-gray-700 mb-3">Your Details</h2>
            <div className="space-y-2 text-sm">
-              <p><span className='font-semibold text-gray-600 w-24 inline-block'>Username:</span> demo_user</p>
-              <p><span className='font-semibold text-gray-600 w-24 inline-block'>Email:</span> user@example.com</p>
+              <p><span className='font-semibold text-gray-600 w-24 inline-block'>Username:</span> {username}</p>
+              <p><span className='font-semibold text-gray-600 w-24 inline-block'>Email:</span> {userEmail}</p>
               {/* Add more fields later */}
            </div>
         </div>
