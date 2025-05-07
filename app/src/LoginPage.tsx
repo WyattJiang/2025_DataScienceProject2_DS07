@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { LogIn } from 'lucide-react';
 
 interface LoginPageProps {
-  onLoginSuccess: () => void; // Callback when login is successful
+  onLoginSuccess: (email: string) => void; // Callback when login is successful
   appName?: string; // Optional app name for display
 }
 
@@ -61,7 +61,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, appName = "Climat
         if (!res.ok) throw new Error(data.error || 'Signup failed.');
   
         setError('Signup successful');
-        onLoginSuccess();
+        onLoginSuccess(email);
       } catch (err: any) {
         setError(err.message || 'Signup failed.');
       }
@@ -81,8 +81,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, appName = "Climat
         if (!res.ok) throw new Error(data.error || 'Login failed.');
     
         // Optional: store username or token here
-        console.log('Logged in as', data.username);
-        onLoginSuccess(); 
+        console.log('Logged in as', email);
+        onLoginSuccess(email); 
       } catch (err: any) {
         setError(err.message || 'Login failed.');
       }

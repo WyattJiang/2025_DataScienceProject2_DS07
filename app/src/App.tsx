@@ -19,9 +19,12 @@ const WeatherDashboard: React.FC = () => {
   const [h3Resolution, setH3Resolution] = useState<number>(INITIAL_H3_RESOLUTION);
   const [activeLayers, setActiveLayers] = useState<{ [key: string]: boolean }>(INITIAL_ACTIVE_LAYERS);
 
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
   // --- Handlers ---
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = (email: string) => {
     console.log("Login successful");
+    setUserEmail(email);
     setIsLoggedIn(true);
     const initialConfig = getConfigForRole('general_public');
     setCurrentUserRole('general_public');
@@ -67,7 +70,7 @@ const WeatherDashboard: React.FC = () => {
 
   // --- Render Logic ---
   if (!isLoggedIn) {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} appName="Climates" />;
+    return <LoginPage onLoginSuccess={(email) => handleLoginSuccess(email)} appName="Climates" />;
   }
 
   // --- Logged In View ---
@@ -75,6 +78,7 @@ const WeatherDashboard: React.FC = () => {
     <div className="flex h-screen bg-gray-50 text-gray-800 font-sans antialiased">
       {/* --- Sidebar --- */}
       <Sidebar 
+        userEmail={userEmail}
         activePage={activeAppPage === 'login' ? 'dashboard' : activeAppPage}
         currentUserRole={currentUserRole}
         activeLayers={activeLayers}
@@ -95,6 +99,7 @@ const WeatherDashboard: React.FC = () => {
 
         {/* --- Content: Map, Profile, Panels --- */}
         <MainContent 
+          userEmail = {userEmail}
           activePage={activeAppPage === 'login' ? 'dashboard' : activeAppPage}
           currentUserRole={currentUserRole}
           onRoleChange={handleRoleChange}
