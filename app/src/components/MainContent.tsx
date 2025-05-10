@@ -3,6 +3,7 @@ import { UserRole } from '../config';
 import ProfilePage from '../ProfilePage';
 import ChatPanel from './ChatPanel';
 import TrendGraphModal from './TrendGraphModal';
+import RealTimeWeather from '../RealTimeWeather';
 
 type MainContentProps = {
   userEmail: string | null;
@@ -65,6 +66,12 @@ const MainContent: React.FC<MainContentProps> = ({
       <TrendGraphModal 
         isOpen={activeLayers.trendGraph} 
         onClose={() => onToggleLayer('trendGraph')} 
+      />
+
+      {/* --- Real Time Weather --- */}
+      <RealTimeWeather
+        isOpen={activeLayers.realtime} 
+        onClose={() => onToggleLayer('realtime')} 
       />
     </div>
   );

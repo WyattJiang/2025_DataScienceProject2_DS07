@@ -58,14 +58,10 @@ const WeatherDashboard: React.FC = () => {
   };
 
   const toggleLayer = (layerKey: string) => {
-    setActiveLayers(prev => {
-      const newActiveLayers = { ...prev };
-      const currentlyActive = newActiveLayers[layerKey];
-      console.log('Toggling:', layerKey, 'Was:', currentlyActive);
-      Object.keys(newActiveLayers).forEach(key => { newActiveLayers[key] = false; });
-      newActiveLayers[layerKey] = !currentlyActive;
-      return newActiveLayers;
-    });
+    setActiveLayers(prev => ({
+      ...prev,
+      [layerKey]: !prev[layerKey]
+    }));
   };
 
   // --- Render Logic ---

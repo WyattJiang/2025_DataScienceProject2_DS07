@@ -3,7 +3,7 @@ import {
   Settings, Filter, MapIcon, Thermometer, Droplets,
   Flame, Sun, Tractor, Building, MessageSquare, Users, Building2, LogOut
 } from 'lucide-react';
-import { ChartLine } from 'lucide-react';
+import { ChartLine, Cloud } from 'lucide-react';
 
 // Import Config and Role Types
 import {
@@ -77,11 +77,25 @@ const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
+        {/* Real Time Weather */}
+        <div className="pt-2">
+          <h3 className="px-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Real Time WEather</h3>
+          <button
+            onClick={() => onToggleLayer('realtime')}
+            className={`w-full text-left p-2.5 text-sm rounded-md flex items-center transition-colors duration-150 ${
+              activeLayers.realtime ? 'bg-purple-100 text-purple-700 font-medium' : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <Cloud className="mr-3 h-5 w-5 flex-shrink-0" /> Real Time Weather
+          </button>
+        </div>
+
         <div className="pt-2">
           <h3 className="px-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Data Layers</h3>
           {Object.keys(ROLES_CONFIG.general_public.defaultLayers).map(layerKey => {
-            // Skip trendGraph as it has its own section
+            // Skip trendGraph and realtime as it has its own section
             if (layerKey === 'trendGraph') return null;
+            else if(layerKey === 'realtime') return null;
             
             const Icon = { temperature: Thermometer, soilMoisture: Droplets, fireRiskIndex: Flame, urbanHeatIntensity: Sun }[layerKey] || Filter;
             const title = layerKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
