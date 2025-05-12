@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = 3001;
-const uri = import.meta.env.VITE_APP_MONGO;
+const uri = "mongodb+srv://zkoh0011:Amoskohzenyii@cluster0.einni.mongodb.net/suburb?retryWrites=true&w=majority&appName=Cluster0";
 const client = new MongoClient(uri);
 let db; // Persistent DB connection
 
