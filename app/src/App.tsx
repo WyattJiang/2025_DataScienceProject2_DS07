@@ -4,6 +4,8 @@ import LoginPage from './LoginPage';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import MainContent from './components/MainContent';
+import HowToModal from './components/HowToUseModal'; 
+
 
 // --- Constants ---
 const MAP_HTML_PATH = 'https://s3.ap-southeast-2.amazonaws.com/climate.ds07/Maps/precip/precip_2000_Autumn.html'; 
@@ -20,6 +22,7 @@ const WeatherDashboard: React.FC = () => {
   const [activeLayers, setActiveLayers] = useState<{ [key: string]: boolean }>(INITIAL_ACTIVE_LAYERS);
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [showHowTo, setShowHowTo] = useState(false);
 
   // --- Handlers ---
   const handleLoginSuccess = (email: string) => {
@@ -81,6 +84,7 @@ const WeatherDashboard: React.FC = () => {
         onNavigate={handleNavigate}
         onToggleLayer={toggleLayer}
         onLogout={handleLogout}
+        onOpenHowTo={() => setShowHowTo(true)}
       />
 
       {/* --- Main Content Area --- */}
@@ -104,6 +108,7 @@ const WeatherDashboard: React.FC = () => {
           onToggleLayer={toggleLayer}
           mapHtmlPath={MAP_HTML_PATH}
         />
+        <HowToModal isOpen={showHowTo} onClose={() => setShowHowTo(false)} />
       </div>
     </div>
   );

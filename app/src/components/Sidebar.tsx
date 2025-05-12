@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Settings, Filter, MapIcon, Thermometer, Droplets,
-  Flame, Sun, Tractor, Building, MessageSquare, Users, Building2, LogOut
+  Flame, Sun, Tractor, Building, MessageSquare, Users, Building2, LogOut, CircleHelp
 } from 'lucide-react';
 import { ChartLine, Cloud } from 'lucide-react';
 
@@ -18,6 +18,7 @@ type SidebarProps = {
   onNavigate: (page: 'dashboard' | 'profile' | 'chatbot') => void;
   onToggleLayer: (layerKey: string) => void;
   onLogout: () => void;
+  onOpenHowTo: () => void;
 };
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -27,7 +28,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   activeLayers,
   onNavigate,
   onToggleLayer,
-  onLogout
+  onLogout,
+  onOpenHowTo,
 }) => {
   const username = userEmail?.split('@')[0] || 'unknown_user';
   return (
@@ -124,8 +126,13 @@ const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
         
-        <button className="w-full text-left p-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md flex items-center transition-colors duration-150 mt-4">
+        <button className="w-full text-left p-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md flex items-center transition-colors duration-150 mt-2">
           <Settings className="mr-3 h-5 w-5 flex-shrink-0" /> Settings
+        </button>
+        <button 
+        onClick={onOpenHowTo}
+        className="w-full text-left p-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md flex items-center transition-colors duration-150 -mt-2">
+          <CircleHelp className="mr-3 h-5 w-5 flex-shrink-0"/> How to use? 
         </button>
       </nav>
       
