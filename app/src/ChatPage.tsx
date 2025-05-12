@@ -10,11 +10,21 @@ interface ChatMessage {
     message: string;       // The message content
 }
 
+interface ChatPageProps {
+  userRole: string;
+  additionalContext: string;
+}
+
   
-const ChatPage: React.FC = () => {
+const ChatPage: React.FC<ChatPageProps> = ({userRole, additionalContext}) => {
   const [userInput, setUserInput] = useState('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const contextTemplates: Record<string, string> = {
+  general_public: "The user is a member of the general public who is exploring weather trends and live conditions to better plan their activities.",
+  farmer: "The user is a farmer looking for weather insights to make informed decisions about planting, irrigation, and harvesting.",
+  urban_planner: "The user is an urban planner interested in climate trends and weather forecasts for infrastructure planning and city resilience.",
+  };
 
   // Initialize Google Gemini API
   const genAI = new GoogleGenerativeAI(import.meta.env.VITE_APP_GEMINI);
@@ -24,6 +34,8 @@ const ChatPage: React.FC = () => {
   const handleUserInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUserInput(e.target.value);
   };
+
+  const context = contextTemplates[userRole] || "";
   // Function to send user message to Gemini
   const sendMessage = async () => {
     if (userInput.trim() === '') return;
@@ -32,7 +44,8 @@ const ChatPage: React.FC = () => {
     
     try {
       // Call Gemini API to get a response
-      const result = await model.generateContent(userInput);
+      const fullPrompt = `Context: ${context}\nAdditional Context: ${additionalContext}\nUser Prompt: ${userInput}`;
+      const result = await model.generateContent(fullPrompt);
       const response = await result.response;
       console.log(response);
       setChatHistory((prevChatHistory) => [
