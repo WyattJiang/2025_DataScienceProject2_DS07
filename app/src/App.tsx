@@ -23,6 +23,7 @@ const WeatherDashboard: React.FC = () => {
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [showHowTo, setShowHowTo] = useState(false);
+  const [additionalContext, setAdditionalContext] = useState<string>("");
 
   // --- Handlers ---
   const handleLoginSuccess = (email: string) => {
@@ -59,6 +60,7 @@ const WeatherDashboard: React.FC = () => {
       setActiveAppPage(page);
     }
   };
+  
 
   const toggleLayer = (layerKey: string) => {
     setActiveLayers(prev => ({
@@ -100,6 +102,8 @@ const WeatherDashboard: React.FC = () => {
         {/* --- Content: Map, Profile, Panels --- */}
         <MainContent 
           userEmail = {userEmail}
+          additionalContext={additionalContext}
+          onUpdateContext={setAdditionalContext}
           activePage={activeAppPage === 'login' ? 'dashboard' : activeAppPage}
           currentUserRole={currentUserRole}
           onRoleChange={handleRoleChange}
