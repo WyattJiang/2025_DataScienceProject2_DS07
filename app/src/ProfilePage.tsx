@@ -26,11 +26,23 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   const currentConfig = getConfigForRole(currentUserRole);
   const username = userEmail?.split('@')[0] || 'unknown_user';
   const [isDirty, setIsDirty] = useState(false);
-  // In a real app, you'd have state for unsaved changes
+const [showUpdateForm, setShowUpdateForm] = useState(false);
+const [currentPassword, setCurrentPassword] = useState('');
+const [newEmail, setNewEmail] = useState('');
+const [newPassword, setNewPassword] = useState('');
+const [confirmNewPassword, setConfirmNewPassword] = useState('');
+const [updateMessage, setUpdateMessage] = useState('');
+const isValidPassword = (password: string) =>
+    /^(?=.*[!@#$%^&*])(?=.*\d)[A-Za-z\d!@#$%^&*]{8,}$/.test(password);
+
+const isValidEmail = (email: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    // In a real app, you'd have state for unsaved changes
   // For now, selection directly calls onRoleChange
 
   return (
-    <div className="flex flex-col items-center h-full bg-gray-100 p-6 sm:p-8">
+      <div className="flex flex-col items-center h-screen overflow-y-auto bg-gray-100 p-6 sm:p-8">
       <div className="w-full max-w-lg bg-white p-6 sm:p-8 rounded-xl shadow-md border border-gray-200">
         {/* Header */}
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
@@ -55,6 +67,104 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
               {/* Add more fields later */}
            </div>
         </div>
+          {/* Change Email/Password Section */}
+          <div className="space-y-3 mb-6">
+              <button
+                  onClick={() => setShowUpdateForm(!showUpdateForm)}
+                  className="text-blue-600 underline"
+              >
+                  {showUpdateForm ? 'Hide' : 'Change Email or Password'}
+              </button>
+
+              {showUpdateForm && (
+                  <div className="space-y-3">
+                      <div>
+                          <label className="block text-sm font-medium text-gray-700">Current Password (Required)</label>
+                          <input
+                              type="password"
+                              value={currentPassword}
+                              onChange={(e) => setCurrentPassword(e.target.value)}
+                              className="w-full p-2 border rounded-md"
+                          />
+                      </div>
+                      <div>
+                          <label className="block text-sm font-medium text-gray-700">New Email (Optional)</label>
+                          <input
+                              type="email"
+                              value={newEmail}
+                              onChange={(e) => setNewEmail(e.target.value)}
+                              className="w-full p-2 border rounded-md"
+                          />
+                      </div>
+                      <div>
+                          <label className="block text-sm font-medium text-gray-700">New Password (Optional)</label>
+                          <input
+                              type="password"
+                              value={newPassword}
+                              onChange={(e) => setNewPassword(e.target.value)}
+                              className="w-full p-2 border rounded-md"
+                          />
+                      </div>
+                      <div>
+                          <label className="block text-sm font-medium text-gray-700">Confirm New Password</label>
+                          <input
+                              type="password"
+                              value={confirmNewPassword}
+                              onChange={(e) => setConfirmNewPassword(e.target.value)}
+                              className="w-full p-2 border rounded-md"
+                          />
+                      </div>
+                      {updateMessage && (
+                          <p className="text-sm text-center text-red-500">{updateMessage}</p>
+                      )}
+                      <button
+                          onClick={async () => {
+                              setUpdateMessage('');
+                              if (newPassword) {
+                                  if (newPassword !== confirmNewPassword) {
+                                      setUpdateMessage("New passwords do not match.");
+                                      return;
+                                  }
+                                  if (!isValidPassword(newPassword)) {
+                                      setUpdateMessage("Password must be at least 8 characters long and include one number and one special character.");
+                                      return;
+                                  }
+                              }
+
+                              if (newEmail && !isValidEmail(newEmail)) {
+                                  setUpdateMessage("Please include an '@' in the email address. 'a' is missing an '@'");
+                                  return;
+                              }
+
+
+                              try {
+                                  const res = await fetch('http://localhost:3001/api/update-user', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                          currentEmail: userEmail,
+                                          currentPassword,
+                                          newEmail: newEmail || undefined,
+                                          newPassword: newPassword || undefined
+                                      })
+                                  });
+
+                                  const data = await res.json();
+                                  if (!res.ok) throw new Error(data.error || "Update failed.");
+
+                                  setUpdateMessage("Update successful. Please re-login if you changed your email.");
+                              } catch (err: any) {
+                                  setUpdateMessage(err.message || "Update failed.");
+                              }
+                          }}
+                          className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg"
+                      >
+                          Save Changes
+                      </button>
+                  </div>
+              )}
+          </div>
+
 
 
         {/* Role Selection Section */}

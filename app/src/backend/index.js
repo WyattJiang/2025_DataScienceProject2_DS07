@@ -262,6 +262,52 @@ app.post('/api/login', async (req, res) => {
     }
   });
 
+app.post('/api/update-user', async (req, res) => {
+    const { currentEmail, currentPassword, newEmail, newPassword } = req.body;
+
+    if (!currentEmail || !currentPassword || (!newEmail && !newPassword)) {
+        return res.status(400).json({ error: "Missing required fields." });
+    }
+
+    try {
+        const user = await db.collection('users').findOne({ email: currentEmail });
+        if (!user) {
+            return res.status(404).json({ error: "User not found." });
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ error: "Incorrect current password." });
+        }
+
+        // Check if new email is already taken
+        if (newEmail && newEmail !== currentEmail) {
+            const emailExists = await db.collection('users').findOne({ email: newEmail });
+            if (emailExists) {
+                return res.status(409).json({ error: "New email is already in use." });
+            }
+        }
+
+        // Prepare update object
+        const updateFields = {};
+        if (newEmail) updateFields.email = newEmail;
+        if (newPassword) {
+            const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+            updateFields.password = hashedNewPassword;
+        }
+
+        // Update the user
+        await db.collection('users').updateOne(
+            { email: currentEmail },
+            { $set: updateFields }
+        );
+
+        res.status(200).json({ message: "User information updated successfully." });
+    } catch (err) {
+        console.error("Update user error:", err);
+        res.status(500).json({ error: "Internal server error." });
+    }
+});
 // // Optional: Close Mongo connection when app exits
 // process.on('SIGINT', async () => {
 //     console.log(' Closing MongoDB connection...');
