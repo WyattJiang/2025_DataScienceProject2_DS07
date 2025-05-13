@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
-import {
-  Settings, Filter, MapIcon, Thermometer, Droplets,
-  Flame, Sun, Tractor, Building, MessageSquare, Users, Building2, LogOut, CircleHelp
-} from 'lucide-react';
-import { ChartLine, Cloud } from 'lucide-react';
-import {
-  UserRole, ROLES_CONFIG, getConfigForRole
-} from '../config';
+import { MapIcon, MessageSquare, CircleHelp, ChartLine, Cloud, LogOut, Tractor, Building2, Users } from 'lucide-react';
+import { UserRole, ROLES_CONFIG, getConfigForRole } from '../config';
 import '../themes.css';
 
 type SidebarProps = {
@@ -133,43 +127,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* Data Layers */}
-        <div className="pt-2">
-          <h3 className="px-2.5 text-xs font-semibold uppercase tracking-wider mb-1">Data Layers</h3>
-          {Object.keys(ROLES_CONFIG.general_public.defaultLayers).map(layerKey => {
-            if (layerKey === 'trendGraph' || layerKey === 'realtime') return null;
-            const Icon = { temperature: Thermometer, soilMoisture: Droplets, fireRiskIndex: Flame, urbanHeatIntensity: Sun }[layerKey] || Filter;
-            const title = layerKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-            return (
-              <button
-                key={layerKey}
-                onClick={() => onToggleLayer(layerKey)}
-                className="w-full text-left p-2.5 text-sm rounded-md flex items-center"
-                style={{
-                  backgroundColor: activeLayers[layerKey] ? 'var(--primary-color)' : 'transparent',
-                  color: activeLayers[layerKey] ? 'var(--background-color)' : 'var(--text-color)',
-                }}
-              >
-                <Icon className="mr-3 h-5 w-5 flex-shrink-0" /> {title}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Decision Tools */}
-        <div className="pt-2">
-          <h3 className="px-2.5 text-xs font-semibold uppercase tracking-wider mb-1">Decision Tools</h3>
-          <button className="w-full text-left p-2.5 text-sm rounded-md flex items-center hover:opacity-80">
-            <Tractor className="mr-3 h-5 w-5 flex-shrink-0" /> Crop Planner {currentUserRole === 'farmer' && '*'}
-          </button>
-          <button className="w-full text-left p-2.5 text-sm rounded-md flex items-center hover:opacity-80">
-            <Building className="mr-3 h-5 w-5 flex-shrink-0" /> Heat Mitigation {currentUserRole === 'urban_planner' && '*'}
-          </button>
-        </div>
-
-        <button className="w-full text-left p-2.5 text-sm rounded-md flex items-center hover:opacity-80">
-          <Settings className="mr-3 h-5 w-5 flex-shrink-0" /> Settings
-        </button>
+        {/* How to use */}
         <button
           onClick={onOpenHowTo}
           className="w-full text-left p-2.5 text-sm rounded-md flex items-center hover:opacity-80"
