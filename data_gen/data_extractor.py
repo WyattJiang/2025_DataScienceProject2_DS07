@@ -102,7 +102,7 @@ class DataExtractor:
         climate_df = joined.groupby(['SAL_NAME21', 'STE_NAME21'])[climate_vars].mean().reset_index()
 
         # Polygon geometry DataFrame
-        geometry_gdf = suburbs_gdf[['SAL_NAME21', 'geometry']].copy()
+        geometry_gdf = suburbs_gdf[['SAL_NAME21','STE_NAME21', 'geometry']].copy()
 
         return climate_df, geometry_gdf
     
@@ -129,7 +129,7 @@ class DataExtractor:
 
         # Fast spatial join instead of unary_union
         aggregated_gdf = gpd.sjoin(
-            aggregated_gdf, suburb_polygons[['geometry']],
+            aggregated_gdf, suburb_polygons[['geometry', 'SAL_NAME21']],
             predicate='intersects', how='inner'
         ).drop(columns=['index_right']).drop_duplicates(subset='hex_id')
 
