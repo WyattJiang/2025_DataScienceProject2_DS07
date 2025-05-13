@@ -4,9 +4,12 @@ import LoginPage from './LoginPage';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import MainContent from './components/MainContent';
+import HowToModal from './components/HowToUseModal';
+ 
+
 
 // --- Constants ---
-const MAP_HTML_PATH = 'https://s3.ap-southeast-2.amazonaws.com/climate.ds07/Maps/precip/precip_2000_Autumn.html'; 
+const MAP_HTML_PATH = 'https://myawsbucketclimates.s3.ap-southeast-2.amazonaws.com/prec.html'; 
 
 // --- Main App Component ---
 const WeatherDashboard: React.FC = () => {
@@ -19,9 +22,14 @@ const WeatherDashboard: React.FC = () => {
   const [h3Resolution, setH3Resolution] = useState<number>(INITIAL_H3_RESOLUTION);
   const [activeLayers, setActiveLayers] = useState<{ [key: string]: boolean }>(INITIAL_ACTIVE_LAYERS);
 
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [showHowTo, setShowHowTo] = useState(false);
+  const [additionalContext, setAdditionalContext] = useState<string>("");
+
   // --- Handlers ---
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = (email: string) => {
     console.log("Login successful");
+    setUserEmail(email);
     setIsLoggedIn(true);
     const initialConfig = getConfigForRole('general_public');
     setCurrentUserRole('general_public');
@@ -53,21 +61,18 @@ const WeatherDashboard: React.FC = () => {
       setActiveAppPage(page);
     }
   };
+  
 
   const toggleLayer = (layerKey: string) => {
-    setActiveLayers(prev => {
-      const newActiveLayers = { ...prev };
-      const currentlyActive = newActiveLayers[layerKey];
-      console.log('Toggling:', layerKey, 'Was:', currentlyActive);
-      Object.keys(newActiveLayers).forEach(key => { newActiveLayers[key] = false; });
-      newActiveLayers[layerKey] = !currentlyActive;
-      return newActiveLayers;
-    });
+    setActiveLayers(prev => ({
+      ...prev,
+      [layerKey]: !prev[layerKey]
+    }));
   };
 
   // --- Render Logic ---
   if (!isLoggedIn) {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} appName="Climates" />;
+    return <LoginPage onLoginSuccess={(email) => handleLoginSuccess(email)} appName="Climates" />;
   }
 
   // --- Logged In View ---
@@ -75,12 +80,14 @@ const WeatherDashboard: React.FC = () => {
     <div className="flex h-screen bg-gray-50 text-gray-800 font-sans antialiased">
       {/* --- Sidebar --- */}
       <Sidebar 
+        userEmail={userEmail}
         activePage={activeAppPage === 'login' ? 'dashboard' : activeAppPage}
         currentUserRole={currentUserRole}
         activeLayers={activeLayers}
         onNavigate={handleNavigate}
         onToggleLayer={toggleLayer}
         onLogout={handleLogout}
+        onOpenHowTo={() => setShowHowTo(true)}
       />
 
       {/* --- Main Content Area --- */}
@@ -95,6 +102,9 @@ const WeatherDashboard: React.FC = () => {
 
         {/* --- Content: Map, Profile, Panels --- */}
         <MainContent 
+          userEmail = {userEmail}
+          additionalContext={additionalContext}
+          onUpdateContext={setAdditionalContext}
           activePage={activeAppPage === 'login' ? 'dashboard' : activeAppPage}
           currentUserRole={currentUserRole}
           onRoleChange={handleRoleChange}
@@ -103,6 +113,7 @@ const WeatherDashboard: React.FC = () => {
           onToggleLayer={toggleLayer}
           mapHtmlPath={MAP_HTML_PATH}
         />
+        <HowToModal isOpen={showHowTo} onClose={() => setShowHowTo(false)} />
       </div>
     </div>
   );

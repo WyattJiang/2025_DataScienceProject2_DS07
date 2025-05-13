@@ -3,10 +3,14 @@ import { UserRole } from '../config';
 import ProfilePage from '../ProfilePage';
 import ChatPanel from './ChatPanel';
 import TrendGraphModal from './TrendGraphModal';
+import RealTimeWeather from '../RealTimeWeather';
 
 type MainContentProps = {
+  userEmail: string | null;
+  additionalContext: string;
   activePage: 'dashboard' | 'profile' | 'chatbot';
   currentUserRole: UserRole;
+  onUpdateContext: (newContext: string) => void;
   onRoleChange: (role: UserRole) => void;
   onNavigate: (page: 'dashboard' | 'profile' | 'chatbot') => void;
   activeLayers: { [key: string]: boolean };
@@ -15,13 +19,16 @@ type MainContentProps = {
 };
 
 const MainContent: React.FC<MainContentProps> = ({
+  userEmail,
+  additionalContext,
+  onUpdateContext,
   activePage,
   currentUserRole,
   onRoleChange,
   onNavigate,
   activeLayers,
   onToggleLayer,
-  mapHtmlPath
+  mapHtmlPath,
 }) => {
   const closeChatbot = () => {
     if (activePage === 'chatbot') {
@@ -34,8 +41,11 @@ const MainContent: React.FC<MainContentProps> = ({
       {/* --- Profile Page View --- */}
       {activePage === 'profile' && (
         <ProfilePage 
+          userEmail={userEmail}
           currentUserRole={currentUserRole} 
+          additionalContext={additionalContext}
           onRoleChange={onRoleChange} 
+          onUpdateContext={onUpdateContext}
           onBackToDashboard={() => onNavigate('dashboard')} 
         />
       )}
@@ -55,13 +65,19 @@ const MainContent: React.FC<MainContentProps> = ({
 
       {/* --- Chat Panel --- */}
       {activePage === 'chatbot' && (
-        <ChatPanel onClose={closeChatbot} />
+        <ChatPanel onClose={closeChatbot} userRole={currentUserRole} additionalContext={additionalContext}/>
       )}
 
       {/* --- Trend Graph Modal --- */}
       <TrendGraphModal 
         isOpen={activeLayers.trendGraph} 
         onClose={() => onToggleLayer('trendGraph')} 
+      />
+
+      {/* --- Real Time Weather --- */}
+      <RealTimeWeather
+        isOpen={activeLayers.realtime} 
+        onClose={() => onToggleLayer('realtime')} 
       />
     </div>
   );

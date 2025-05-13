@@ -10,28 +10,42 @@ interface ChatMessage {
     message: string;       // The message content
 }
 
+interface ChatPageProps {
+  userRole: string;
+  additionalContext: string;
+}
+
   
-const ChatPage: React.FC = () => {
+const ChatPage: React.FC<ChatPageProps> = ({userRole, additionalContext}) => {
   const [userInput, setUserInput] = useState('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const contextTemplates: Record<string, string> = {
+  general_public: "The user is a member of the general public who is exploring weather trends and live conditions to better plan their activities.",
+  farmer: "The user is a farmer looking for weather insights to make informed decisions about planting, irrigation, and harvesting.",
+  urban_planner: "The user is an urban planner interested in climate trends and weather forecasts for infrastructure planning and city resilience.",
+  };
 
   // Initialize Google Gemini API
-  const genAI = new GoogleGenerativeAI("AIzaSyDn_pPZRN1RihRU1Dk63rygqPXDTvqVVJI");
+  const genAI = new GoogleGenerativeAI(import.meta.env.VITE_APP_GEMINI);
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   // Function to handle user input
   const handleUserInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUserInput(e.target.value);
   };
+
+  const context = contextTemplates[userRole] || "";
   // Function to send user message to Gemini
   const sendMessage = async () => {
     if (userInput.trim() === '') return;
 
     setIsLoading(true);
+    
     try {
       // Call Gemini API to get a response
-      const result = await model.generateContent(userInput);
+      const fullPrompt = `Context: ${context}\nAdditional Context: ${additionalContext}\nUser Prompt: ${userInput}`;
+      const result = await model.generateContent(fullPrompt);
       const response = await result.response;
       console.log(response);
       setChatHistory((prevChatHistory) => [
@@ -60,7 +74,8 @@ const ChatPage: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-center mb-4">Chatbot</h1>
+      <h1 className="text-3xl font-bold text-center mb-4">Chatmate</h1>
+      <p className='text-center -mt-5 mb-2'> your virtual assitant</p>
       <button
         className="ml-20 px-4 py-2 rounded-lg bg-gray-400 text-white hover:bg-gray-500 focus:outline-none"
         onClick={clearChat}
@@ -85,7 +100,11 @@ const ChatPage: React.FC = () => {
           onClick={sendMessage}
           disabled={isLoading}
         >
-          Send
+          {isLoading ? (
+            <div className="animate-spin w-5 h-5 border-4 border-t-transparent border-white rounded-full"></div>
+          ) : (
+            'Send'
+          )}
         </button>
       </div>
     </div>

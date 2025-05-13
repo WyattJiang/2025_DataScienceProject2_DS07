@@ -1,9 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 const { MongoClient } = require('mongodb');
+const bcrypt = require('bcrypt');
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 
 const PORT = 3001;
 const uri = "mongodb+srv://zkoh0011:Amoskohzenyii@cluster0.einni.mongodb.net/suburb?retryWrites=true&w=majority&appName=Cluster0";
@@ -14,7 +16,7 @@ async function connectToMongo() {
     if (!db) {
         await client.connect();
         db = client.db("suburb");
-        console.log("✅ MongoDB connected");
+        console.log(" MongoDB connected");
     }
 }
 
@@ -103,7 +105,7 @@ app.get('/seasonal-data', async (req, res) => {
 
         res.json(reshaped);
     } catch (err) {
-        console.error("❌ Error:", err);
+        console.error(" Error:", err);
         res.status(500).json({ error: "Failed to fetch seasonal data." });
     }
 });
@@ -126,7 +128,7 @@ app.get('/api/suburbs', async (req, res) => {
 
         res.json(suburbsWithDisplay);
     } catch (err) {
-        console.error("❌ Error:", err);
+        console.error(" Error:", err);
         res.status(500).json({ error: "Failed to fetch suburbs." });
     }
 });
@@ -153,7 +155,7 @@ app.get('/trend-graph', async (req, res) => {
 
         res.json(flattened);
     } catch (err) {
-        console.error("❌ Error in /trend-graph:", err);
+        console.error(" Error in /trend-graph:", err);
         res.status(500).json({ error: "Failed to fetch trend graph data." });
     }
 });
@@ -197,18 +199,72 @@ app.get('/api/trend-data', async (req, res) => {
 
         res.json(reshaped);
     } catch (err) {
-        console.error("❌ Error in /api/trend-data:", err);
+        console.error("Error in /api/trend-data:", err);
         res.status(500).json({ error: "Failed to fetch trend data." });
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`✅ Server running at http://localhost:${PORT}`);
+
+// --- Sign Up Route ---
+app.post('/api/signup', async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!password || !email) {
+        return res.status(400).json({ error: "All fields are required." });
+    }
+
+    try {
+        const existingUser = await db.collection('users').findOne({ email });
+        if (existingUser) {
+            return res.status(409).json({ error: "Email already in use." });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        await db.collection('users').insertOne({
+            email,
+            password: hashedPassword
+        });
+
+        res.status(201).json({ message: "User registered successfully." });
+    } catch (err) {
+        console.error(" Sign up error:", err);
+        res.status(500).json({ error: "Internal server error." });
+    }
 });
+
+app.listen(PORT, () => {
+    console.log(` Server running at http://localhost:${PORT}`);
+});
+
+app.post('/api/login', async (req, res) => {
+    const { email, password } = req.body;
+  
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password required.' });
+    }
+  
+    try {
+      const user = await db.collection('users').findOne({ email });
+      if (!user) {
+        return res.status(401).json({ error: 'Invalid credentials.' });
+      }
+  
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return res.status(401).json({ error: 'Invalid credentials.' });
+      }
+  
+      res.status(200).json({ message: 'Login successful', username: user.username });
+    } catch (err) {
+      console.error('Login error:', err);
+      res.status(500).json({ error: 'Internal server error.' });
+    }
+  });
 
 // // Optional: Close Mongo connection when app exits
 // process.on('SIGINT', async () => {
-//     console.log('🔌 Closing MongoDB connection...');
+//     console.log(' Closing MongoDB connection...');
 //     await client.close();
 //     process.exit(0);
 // });
