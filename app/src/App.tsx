@@ -8,7 +8,7 @@ import HowToModal from './components/HowToUseModal';
 
 
 // --- Constants ---
-const MAP_HTML_PATH = 'https://s3.ap-southeast-2.amazonaws.com/climate.ds07/Maps/precip/precip_2000_Autumn.html'; 
+const MAP_HTML_PATH = 'https://s3.ap-southeast-2.amazonaws.com/climate.ds07/prec.html'; 
 
 // --- Main App Component ---
 const WeatherDashboard: React.FC = () => {
