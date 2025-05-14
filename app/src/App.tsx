@@ -4,11 +4,12 @@ import LoginPage from './LoginPage';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import MainContent from './components/MainContent';
-import HowToModal from './components/HowToUseModal'; 
+import HowToModal from './components/HowToUseModal';
+ 
 
 
 // --- Constants ---
-const MAP_HTML_PATH = 'https://s3.ap-southeast-2.amazonaws.com/climate.ds07/Maps/precip/precip_2000_Autumn.html'; 
+const MAP_HTML_PATH = 'https://myawsbucketclimates.s3.ap-southeast-2.amazonaws.com/prec.html'; 
 
 // --- Main App Component ---
 const WeatherDashboard: React.FC = () => {

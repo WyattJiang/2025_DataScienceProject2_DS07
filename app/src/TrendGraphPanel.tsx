@@ -15,6 +15,7 @@ interface TrendPoint {
     year: number;
     [key: string]: number | string;
 }
+const lineColors = ['#3b82f6', '#f97316', '#10b981', '#8b5cf6', '#ef4444'];
 
 const TrendGraphPanel: React.FC = () => {
     const [searchInput, setSearchInput] = useState('');
@@ -60,7 +61,7 @@ const TrendGraphPanel: React.FC = () => {
 
         setSelectedSuburbs((prev) => {
             if (prev.includes(selectedSuburb.name)) return prev;
-            if (prev.length >= 2) return prev;
+            if (prev.length >= 5) return prev;
             return [...prev, selectedSuburb.name];
         });
     };
@@ -121,7 +122,7 @@ const TrendGraphPanel: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {/* Suburb Search Bar */}
                 <div className="relative">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Search Suburb (max 2)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Search Suburb (max 5)</label>
                     <input
                         type="text"
                         value={searchInput}
@@ -225,7 +226,7 @@ const TrendGraphPanel: React.FC = () => {
                                     key={name}
                                     type="monotone"
                                     dataKey={name}
-                                    stroke={index === 0 ? '#3b82f6' : '#f97316'}
+                                    stroke={lineColors[index % lineColors.length]}
                                     strokeWidth={2}
                                     dot={{ r: 2 }}
                                     name={`${name} (${season})`}

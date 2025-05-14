@@ -1,0 +1,17 @@
+:root {
+  --primary-color: #007bff;
+  --background-color: #ffffff;
+  --text-color: #000000;
+}
+
+.color-blind-theme {
+  --primary-color: #ff9900; 
+  --background-color: #f5f5f5;
+  --text-color: #333333;
+}
+
+.high-contrast-theme {
+  --primary-color: #ffff00; 
+  --background-color: #000000;
+  --text-color: #ffffff;
+}
