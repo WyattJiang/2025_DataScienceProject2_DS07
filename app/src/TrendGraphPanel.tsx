@@ -29,6 +29,7 @@ const TrendGraphPanel: React.FC = () => {
     const [suburbs, setSuburbs] = useState<SuburbOption[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [yAxisRange, setYAxisRange] = useState<[number, number]>([0, 100]);
 
     useEffect(() => {
         axios.get('http://localhost:3001/api/suburbs')
@@ -104,6 +105,20 @@ const TrendGraphPanel: React.FC = () => {
 
                 const finalData = Object.values(merged).sort((a, b) => a.year - b.year);
                 setData(finalData);
+                const allValues: number[] = [];
+
+                finalData.forEach(entry => {
+                    selectedSuburbs.forEach(suburb => {
+                        const val = entry[suburb];
+                        if (typeof val === 'number') {
+                            allValues.push(val);
+                        }
+                    });
+                });
+
+                const minY = Math.floor(Math.min(...allValues));
+                const maxY = Math.ceil(Math.max(...allValues));
+                setYAxisRange([minY, maxY]);
             } catch (err) {
                 console.error("Error:", err);
                 setError("Failed to load data");
@@ -208,18 +223,24 @@ const TrendGraphPanel: React.FC = () => {
                     <div className="text-center text-gray-500">No data available</div>
                 ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={data}>
+                        <LineChart
+                            data={data}
+                            margin={{ top: 20, right: 30, left: 0, bottom: 40 }}  // ⬅️ Adds bottom margin
+                        >
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="year" />
                             <YAxis
+                                domain={yAxisRange}
+                                allowDecimals={true}
                                 label={{
                                     value: variable === 'precip' ? 'Precip (mm)' : 'Temp (°C)',
                                     angle: -90,
                                     position: 'insideLeft'
                                 }}
                             />
+
                             <Tooltip />
-                            <Legend />
+                            <Legend verticalAlign="bottom" height={36} />  {/* ⬅️ Puts legend clearly below chart */}
                             <ReferenceLine x={new Date().getFullYear()} stroke="gray" strokeDasharray="4 2" label="Now" />
                             {selectedSuburbs.map((name, index) => (
                                 <Line
@@ -234,6 +255,7 @@ const TrendGraphPanel: React.FC = () => {
                             ))}
                         </LineChart>
                     </ResponsiveContainer>
+
                 )}
             </div>
         </div>
