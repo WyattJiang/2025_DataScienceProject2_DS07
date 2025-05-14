@@ -27,7 +27,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, appName = "Climat
     }
 
     const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    const isValidPassword = (password: string) =>/^(?=.*[!@#$%^&*])(?=.*\d)[A-Za-z\d!@#$%^&*]{8,}$/.test(password);
+    const isValidPassword = (password: string) =>/^(?=.*[!@#$%^&-?*])(?=.*\d)[A-Za-z\d!@#$%^&*]{8,}$/.test(password);
     
   
     if (isSignUpMode) {
