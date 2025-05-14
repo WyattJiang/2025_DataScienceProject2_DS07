@@ -20,7 +20,7 @@ const TrendGraphModal: React.FC<TrendGraphModalProps> = ({ isOpen, onClose }) =>
         >
           <X className="w-6 h-6" />
         </button>
-        <h2 className="text-xl font-semibold mb-4">Trend Graph</h2>
+        <h2 className="text-3xl font-bold mb-4 text-center">Trend Graph</h2>
         <TrendGraphPanel />
       </div>
     </div>

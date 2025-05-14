@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { MapIcon, MessageSquare, CircleHelp, ChartLine, Cloud, LogOut, Tractor, Building2, Users } from 'lucide-react';
-import { UserRole, ROLES_CONFIG, getConfigForRole } from '../config';
+//// filepath: c:\Users\14224\Documents\GitHub\2025_DataScienceProject2_DS07\app\src\components\Sidebar.tsx
+import React from 'react';
+import { MapIcon, MessageSquare, CircleHelp, ChartLine, Cloud, LogOut, Tractor, Building2, Users, Telescope, CodeXml, Settings} from 'lucide-react';
+import { UserRole, getConfigForRole } from '../config';
 import '../themes.css';
 
 type SidebarProps = {
@@ -12,6 +13,8 @@ type SidebarProps = {
   onToggleLayer: (layerKey: string) => void;
   onLogout: () => void;
   onOpenHowTo: () => void;
+  onOpenCitations: () => void;
+  onOpenSettings: () => void;
 };
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -23,14 +26,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   onToggleLayer,
   onLogout,
   onOpenHowTo,
+  onOpenCitations,
+  onOpenSettings,
 }) => {
-  const [theme, setTheme] = useState<'default' | 'color-blind' | 'high-contrast'>('default');
-
-  const handleThemeChange = (newTheme: 'default' | 'color-blind' | 'high-contrast') => {
-    setTheme(newTheme);
-    document.documentElement.className = newTheme === 'default' ? '' : `${newTheme}-theme`;
-  };
-
   const username = userEmail?.split('@')[0] || 'unknown_user';
 
   return (
@@ -49,25 +47,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           </svg>
         </div>
         <h1 className="font-bold text-lg">Climates</h1>
-      </div>
-
-      {/* Theme Selector */}
-      <div className="p-4 border-b" style={{ borderColor: 'var(--text-color)' }}>
-        <h3 className="text-sm font-semibold mb-2">Theme</h3>
-        <select
-          value={theme}
-          onChange={(e) => handleThemeChange(e.target.value as typeof theme)}
-          className="w-full p-2 border rounded-md text-sm"
-          style={{
-            backgroundColor: 'var(--background-color)',
-            color: 'var(--text-color)',
-            borderColor: 'var(--text-color)',
-          }}
-        >
-          <option value="default">Default</option>
-          <option value="color-blind">Color Blind</option>
-          <option value="high-contrast">High Contrast</option>
-        </select>
       </div>
 
       {/* Navigation */}
@@ -127,6 +106,21 @@ const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
+        {/* Forecasting Weather */}
+        <div className="pt-2">
+          <h3 className="px-2.5 text-xs font-semibold uppercase tracking-wider mb-1">Weather Forecast</h3>
+          <button
+            onClick={() => onToggleLayer('forecast')}
+            className="w-full text-left p-2.5 text-sm rounded-md flex items-center"
+            style={{
+              backgroundColor: activeLayers.forecast ? 'var(--primary-color)' : 'transparent',
+              color: activeLayers.forecast ? 'var(--background-color)' : 'var(--text-color)',
+            }}
+          >
+            <Telescope className="mr-3 h-5 w-5 flex-shrink-0" /> Weather Forecast
+          </button>
+        </div>
+
         {/* How to use */}
         <button
           onClick={onOpenHowTo}
@@ -134,6 +128,23 @@ const Sidebar: React.FC<SidebarProps> = ({
         >
           <CircleHelp className="mr-3 h-5 w-5 flex-shrink-0" /> How to use?
         </button>
+
+        <button
+          onClick={onOpenSettings}
+          className="w-full text-left p-2.5 text-sm rounded-md flex items-center hover:opacity-80"
+        >
+          <Settings className='mr-3 h-5 w-5 flex-shrink-0' /> Settings
+        </button>
+
+        {/* Data Citations */}
+        <button
+          onClick={onOpenCitations}
+          className="w-full text-left p-2.5 text-sm rounded-md flex items-center hover:opacity-80"
+        >
+          <CodeXml className="mr-3 h-5 w-5 flex-shrink-0" /> Data Sources & Processing
+        </button>
+
+        
       </nav>
 
       {/* Profile & Logout */}
@@ -158,10 +169,11 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
         <button
           onClick={onLogout}
-          className="mt-2 w-full text-left p-2 text-sm rounded-md flex items-center transition-colors"
+          className="mt-2 w-full text-left p-2 text-sm rounded-md flex items-center justify-center transition-colors border hover:bg-opacity-10" 
           style={{
             backgroundColor: 'var(--background-color)',
             color: 'var(--primary-color)',
+            borderColor: 'var(--primary-color)',
           }}
         >
           <LogOut className="mr-2 h-4 w-4 flex-shrink-0" /> Logout

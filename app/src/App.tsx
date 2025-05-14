@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { UserRole, getConfigForRole, INITIAL_H3_RESOLUTION, INITIAL_ACTIVE_LAYERS } from './config';
 import LoginPage from './LoginPage';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import MainContent from './components/MainContent';
+import DataCitationsModal from './components/DataCitationsModal';
 import HowToModal from './components/HowToUseModal';
+import SettingsModal from './components/SettingsModal';
  
 
 
@@ -24,8 +26,9 @@ const WeatherDashboard: React.FC = () => {
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [showHowTo, setShowHowTo] = useState(false);
+  const [showCitationsModal, setShowCitationsModal] = useState(false);
   const [additionalContext, setAdditionalContext] = useState<string>("");
-
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   // --- Handlers ---
   const handleLoginSuccess = (email: string) => {
     console.log("Login successful");
@@ -64,11 +67,30 @@ const WeatherDashboard: React.FC = () => {
   
 
   const toggleLayer = (layerKey: string) => {
+    console.log("layerkey:",layerKey)
     setActiveLayers(prev => ({
       ...prev,
       [layerKey]: !prev[layerKey]
     }));
   };
+
+  const handleOpenCitations = () => setShowCitationsModal(true);
+  const handleCloseCitations = () => setShowCitationsModal(false);
+
+  const getStoredTheme = (): ThemeType => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('preferredTheme');
+      if (saved === 'color-blind' || saved === 'high-contrast') return saved;
+    }
+    return 'default';
+  };
+  type ThemeType = 'default' | 'color-blind' | 'high-contrast';
+  const [theme, setTheme] = useState<ThemeType>(getStoredTheme);
+
+  useEffect(() => {
+  document.documentElement.className = theme === 'default' ? '' : `${theme}-theme`;
+  localStorage.setItem('preferredTheme', theme);
+  }, [theme]);
 
   // --- Render Logic ---
   if (!isLoggedIn) {
@@ -88,6 +110,8 @@ const WeatherDashboard: React.FC = () => {
         onToggleLayer={toggleLayer}
         onLogout={handleLogout}
         onOpenHowTo={() => setShowHowTo(true)}
+        onOpenCitations={handleOpenCitations}
+        onOpenSettings={() => setShowSettingsModal(true)}
       />
 
       {/* --- Main Content Area --- */}
@@ -114,6 +138,13 @@ const WeatherDashboard: React.FC = () => {
           mapHtmlPath={MAP_HTML_PATH}
         />
         <HowToModal isOpen={showHowTo} onClose={() => setShowHowTo(false)} />
+        <SettingsModal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+          theme={theme}
+          onThemeChange={setTheme}
+        />
+        <DataCitationsModal isOpen={showCitationsModal} onClose={handleCloseCitations} />
       </div>
     </div>
   );
