@@ -4,6 +4,7 @@ import LoginPage from './LoginPage';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import MainContent from './components/MainContent';
+import DataCitationsModal from './components/DataCitationsModal';
 import HowToModal from './components/HowToUseModal';
  
 
@@ -24,6 +25,7 @@ const WeatherDashboard: React.FC = () => {
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [showHowTo, setShowHowTo] = useState(false);
+  const [showCitationsModal, setShowCitationsModal] = useState(false);
   const [additionalContext, setAdditionalContext] = useState<string>("");
 
   // --- Handlers ---
@@ -71,6 +73,10 @@ const WeatherDashboard: React.FC = () => {
     }));
   };
 
+  const handleOpenCitations = () => setShowCitationsModal(true);
+  const handleCloseCitations = () => setShowCitationsModal(false);
+
+
   // --- Render Logic ---
   if (!isLoggedIn) {
     return <LoginPage onLoginSuccess={(email) => handleLoginSuccess(email)} appName="Climates" />;
@@ -89,6 +95,7 @@ const WeatherDashboard: React.FC = () => {
         onToggleLayer={toggleLayer}
         onLogout={handleLogout}
         onOpenHowTo={() => setShowHowTo(true)}
+        onOpenCitations={handleOpenCitations}
       />
 
       {/* --- Main Content Area --- */}
@@ -115,6 +122,7 @@ const WeatherDashboard: React.FC = () => {
           mapHtmlPath={MAP_HTML_PATH}
         />
         <HowToModal isOpen={showHowTo} onClose={() => setShowHowTo(false)} />
+        <DataCitationsModal isOpen={showCitationsModal} onClose={handleCloseCitations} />
       </div>
     </div>
   );

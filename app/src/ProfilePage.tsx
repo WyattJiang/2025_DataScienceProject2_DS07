@@ -1,7 +1,7 @@
-// src/ProfilePage.tsx
-import React, { useState } from 'react';
+//// filepath: c:\Users\14224\Documents\GitHub\2025_DataScienceProject2_DS07\app\src\ProfilePage.tsx
+import React, { useEffect, useState } from 'react';
 import { UserRole, ROLES_CONFIG, getConfigForRole } from './config';
-import { User, ArrowLeft, Save, CheckSquare, Square } from 'lucide-react'; // Added icons
+import { User, ArrowLeft, Save, CheckSquare, Square } from 'lucide-react';
 
 interface ProfilePageProps {
   userEmail: string | null;
@@ -15,170 +15,251 @@ interface ProfilePageProps {
 const ProfilePage: React.FC<ProfilePageProps> = ({
   userEmail,
   currentUserRole,
-  additionalContext, 
+  additionalContext,
   onUpdateContext,
   onRoleChange,
   onBackToDashboard,
-  
 }) => {
   const [localContext, setLocalContext] = useState<string>(additionalContext);
   const availableRoles: UserRole[] = ['general_public', 'farmer', 'urban_planner'];
   const currentConfig = getConfigForRole(currentUserRole);
   const username = userEmail?.split('@')[0] || 'unknown_user';
+
   const [isDirty, setIsDirty] = useState(false);
-const [showUpdateForm, setShowUpdateForm] = useState(false);
-const [currentPassword, setCurrentPassword] = useState('');
-const [newEmail, setNewEmail] = useState('');
-const [newPassword, setNewPassword] = useState('');
-const [confirmNewPassword, setConfirmNewPassword] = useState('');
-const [updateMessage, setUpdateMessage] = useState('');
-const isValidPassword = (password: string) =>
+  const [showUpdateForm, setShowUpdateForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [updateMessage, setUpdateMessage] = useState('');
+
+  const isValidPassword = (password: string) =>
     /^(?=.*[!@#$%^&*])(?=.*\d)[A-Za-z\d!@#$%^&*]{8,}$/.test(password);
 
-const isValidEmail = (email: string) =>
+  const isValidEmail = (email: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-    // In a real app, you'd have state for unsaved changes
-  // For now, selection directly calls onRoleChange
+  // ==================================
+  //theme change 
+  // ==================================
+  type ThemeType = 'default' | 'color-blind' | 'high-contrast';
+  const getStoredTheme = (): ThemeType => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('preferredTheme');
+      if (saved === 'color-blind' || saved === 'high-contrast') {
+        return saved;
+      }
+    }
+    return 'default';
+  };
+
+  const [theme, setTheme] = useState<ThemeType>(getStoredTheme);
+
+  const handleThemeChange = (newTheme: ThemeType) => {
+    setTheme(newTheme);
+    document.documentElement.className = newTheme === 'default' ? '' : `${newTheme}-theme`;
+    localStorage.setItem('preferredTheme', newTheme);
+  };
+
+  useEffect(() => {
+    // loading the theme from localStorage
+    document.documentElement.className = theme === 'default' ? '' : `${theme}-theme`;
+  }, [theme]);
+
+  const themeOptions = [
+    { value: 'default', label: 'Default' },
+    { value: 'color-blind', label: 'Color Blind' },
+    { value: 'high-contrast', label: 'High Contrast' },
+  ];
+
+  // if it is in high contrast mode, set the text color to white and background color to black
+  const textColorStyle = theme === 'high-contrast' ? '#FFFFFF' : 'var(--text-color, #000000)';
+  const cardBackgroundStyle = theme === 'high-contrast' ? '#000000' : 'var(--card-background-color, #FFFFFF)';
 
   return (
-      <div className="flex flex-col items-center h-full overflow-y-auto bg-gray-100 p-6 sm:p-8">
-        <div className="w-full max-w-lg bg-white p-6 sm:p-8 rounded-xl shadow-md border border-gray-200 -mt-7 -mb-6">
+    <div
+      className="flex flex-col items-center h-full overflow-y-auto p-6 sm:p-8"
+      style={{
+        backgroundColor: 'var(--background-color, #FFFFFF)',
+        color: textColorStyle,
+      }}
+    >
+      <div
+        className="w-full max-w-lg p-6 sm:p-8 rounded-xl shadow-md border border-gray-200 -mt-7 -mb-6"
+        style={{
+          backgroundColor: cardBackgroundStyle,
+          color: textColorStyle,
+        }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
-           <div className='flex items-center'>
-             <User className="w-6 h-6 mr-3 text-blue-600" />
-             <h1 className="text-xl font-semibold text-gray-800">User Profile & Role</h1>
-           </div>
-            <button
-                onClick={onBackToDashboard}
-                className="flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm"
-            >
-                <ArrowLeft className="w-4 h-4 mr-1.5" /> Back
-            </button>
-        </div>
-
-        {/* Profile Info Section (Placeholder) */}
-        <div className="mb-6">
-           <h2 className="text-lg font-medium text-gray-700 mb-3">Your Details</h2>
-           <div className="space-y-2 text-sm">
-              <p><span className='font-semibold text-gray-600 w-24 inline-block'>Username:</span> {username}</p>
-              <p><span className='font-semibold text-gray-600 w-24 inline-block'>Email:</span> {userEmail}</p>
-              {/* Add more fields later */}
-           </div>
-        </div>
-          {/* Change Email/Password Section */}
-          <div className="space-y-3 mb-6">
-              <button
-                  onClick={() => setShowUpdateForm(!showUpdateForm)}
-                  className="text-blue-600 underline"
-              >
-                  {showUpdateForm ? 'Hide' : 'Change Email or Password'}
-              </button>
-
-              {showUpdateForm && (
-                  <div className="space-y-3">
-                      <div>
-                          <label className="block text-sm font-medium text-gray-700">Current Password (Required)</label>
-                          <input
-                              type="password"
-                              value={currentPassword}
-                              onChange={(e) => setCurrentPassword(e.target.value)}
-                              className="w-full p-2 border rounded-md"
-                          />
-                      </div>
-                      <div>
-                          <label className="block text-sm font-medium text-gray-700">New Email (Optional)</label>
-                          <input
-                              type="email"
-                              value={newEmail}
-                              onChange={(e) => setNewEmail(e.target.value)}
-                              className="w-full p-2 border rounded-md"
-                          />
-                      </div>
-                      <div>
-                          <label className="block text-sm font-medium text-gray-700">New Password (Optional)</label>
-                          <input
-                              type="password"
-                              value={newPassword}
-                              onChange={(e) => setNewPassword(e.target.value)}
-                              className="w-full p-2 border rounded-md"
-                          />
-                      </div>
-                      <div>
-                          <label className="block text-sm font-medium text-gray-700">Confirm New Password</label>
-                          <input
-                              type="password"
-                              value={confirmNewPassword}
-                              onChange={(e) => setConfirmNewPassword(e.target.value)}
-                              className="w-full p-2 border rounded-md"
-                          />
-                      </div>
-                      {updateMessage && (
-                          <p className="text-sm text-center text-red-500">{updateMessage}</p>
-                      )}
-                      <button
-                          onClick={async () => {
-                              setUpdateMessage('');
-                              if (newPassword) {
-                                  if (newPassword !== confirmNewPassword) {
-                                      setUpdateMessage("New passwords do not match.");
-                                      return;
-                                  }
-                                  if (!isValidPassword(newPassword)) {
-                                      setUpdateMessage("Password must be at least 8 characters long and include one number and one special character.");
-                                      return;
-                                  }
-                              }
-
-                              if (newEmail && !isValidEmail(newEmail)) {
-                                  setUpdateMessage("Please include an '@' in the email address. 'a' is missing an '@'");
-                                  return;
-                              }
-
-
-                              try {
-                                  const res = await fetch('http://localhost:3001/api/update-user', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({
-                                          currentEmail: userEmail,
-                                          currentPassword,
-                                          newEmail: newEmail || undefined,
-                                          newPassword: newPassword || undefined
-                                      })
-                                  });
-
-                                  const data = await res.json();
-                                  if (!res.ok) throw new Error(data.error || "Update failed.");
-
-                                  setUpdateMessage("Update successful. Please re-login if you changed your email.");
-                              } catch (err: any) {
-                                  setUpdateMessage(err.message || "Update failed.");
-                              }
-                          }}
-                          className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg"
-                      >
-                          Save Changes
-                      </button>
-                  </div>
-              )}
+          <div className="flex items-center">
+            <User className="w-6 h-6 mr-3 text-blue-600" />
+            <h1 className="text-xl font-semibold">
+              User Profile & Role
+            </h1>
           </div>
+          <button
+            onClick={onBackToDashboard}
+            className="flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm"
+          >
+            <ArrowLeft className="w-4 h-4 mr-1.5" /> Back
+          </button>
+        </div>
 
+        {/* Profile Info Section */}
+        <div className="mb-6">
+          <h2 className="text-lg font-medium mb-3">Your Details</h2>
+          <div className="space-y-2 text-sm">
+            <p>
+              <span className="font-semibold w-24 inline-block">Username:</span> 
+              {username}
+            </p>
+            <p>
+              <span className="font-semibold w-24 inline-block">Email:</span> 
+              {userEmail}
+            </p>
+          </div>
+        </div>
 
+        {/* Theme Selection Buttons */}
+        <div className="mb-6">
+          <h2 className="text-lg font-medium mb-3">Theme Selection</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Choose a theme for the entire application interface.
+          </p>
+          <div className="space-y-3">
+            {themeOptions.map((t) => (
+              <button
+                key={t.value}
+                onClick={() => handleThemeChange(t.value)}
+                className={`w-full flex items-center justify-between p-3 border rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 ${
+                  theme === t.value
+                    ? 'border-blue-500 bg-blue-50 text-blue-700 ring-blue-500'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                }`}
+              >
+                <span className="font-medium">{t.label}</span>
+                {theme === t.value ? (
+                  <CheckSquare className="w-5 h-5 text-blue-600" />
+                ) : (
+                  <Square className="w-5 h-5 text-gray-400" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Change Email/Password Section */}
+        <div className="space-y-3 mb-6">
+          <button
+            onClick={() => setShowUpdateForm(!showUpdateForm)}
+            className="text-blue-600 underline"
+          >
+            {showUpdateForm ? 'Hide' : 'Change Email or Password'}
+          </button>
+          {showUpdateForm && (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium">Current Password (Required)</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full p-2 border rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">New Email (Optional)</label>
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  className="w-full p-2 border rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">New Password (Optional)</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full p-2 border rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  className="w-full p-2 border rounded-md"
+                />
+              </div>
+              {updateMessage && (
+                <p className="text-sm text-center text-red-500">{updateMessage}</p>
+              )}
+              <button
+                onClick={async () => {
+                  setUpdateMessage('');
+                  // 验证密码
+                  if (newPassword) {
+                    if (newPassword !== confirmNewPassword) {
+                      setUpdateMessage('New passwords do not match.');
+                      return;
+                    }
+                    if (!isValidPassword(newPassword)) {
+                      setUpdateMessage(
+                        'Password must be at least 8 characters long and include one number and one special character.'
+                      );
+                      return;
+                    }
+                  }
+                  if (newEmail && !isValidEmail(newEmail)) {
+                    setUpdateMessage(
+                      "Please include an '@' in the email address. 'a' is missing an '@'"
+                    );
+                    return;
+                  }
+                  try {
+                    const res = await fetch('http://localhost:3001/api/update-user', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        currentEmail: userEmail,
+                        currentPassword,
+                        newEmail: newEmail || undefined,
+                        newPassword: newPassword || undefined,
+                      }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Update failed.');
+                    setUpdateMessage('Update successful. Please re-login if you changed your email.');
+                  } catch (err: any) {
+                    setUpdateMessage(err.message || 'Update failed.');
+                  }
+                }}
+                className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg"
+              >
+                Save Changes
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Role Selection Section */}
         <div>
-          <h2 className="text-lg font-medium text-gray-700 mb-3">Select Your Role</h2>
+          <h2 className="text-lg font-medium mb-3">Select Your Role</h2>
           <p className="text-sm text-gray-500 mb-4">
-            Choosing a role tailors the map resolution, default layers, and available tools to better suit your needs.
-            Your current role is: <strong className='text-indigo-600'>{currentConfig.displayName}</strong>.
+            Choosing a role tailors the map resolution, default layers, and available tools 
+            to better suit your needs. Your current role is:{' '}
+            <strong className="text-indigo-600">{currentConfig.displayName}</strong>.
           </p>
           <div className="space-y-3">
             {availableRoles.map((role) => (
               <button
                 key={role}
-                onClick={() => onRoleChange(role)} // Directly update role on click
+                onClick={() => onRoleChange(role)}
                 className={`w-full flex items-center justify-between p-3 border rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 ${
                   currentUserRole === role
                     ? 'border-blue-500 bg-blue-50 text-blue-700 ring-blue-500'
@@ -186,22 +267,22 @@ const isValidEmail = (email: string) =>
                 }`}
               >
                 <span className="font-medium">{ROLES_CONFIG[role].displayName}</span>
-                {currentUserRole === role
-                  ? <CheckSquare className="w-5 h-5 text-blue-600" />
-                  : <Square className="w-5 h-5 text-gray-400" />
-                }
+                {currentUserRole === role ? (
+                  <CheckSquare className="w-5 h-5 text-blue-600" />
+                ) : (
+                  <Square className="w-5 h-5 text-gray-400" />
+                )}
               </button>
             ))}
           </div>
-          {/* <button className="mt-6 w-full flex items-center justify-center px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 ...">
-             <Save className="w-5 h-5 mr-2" /> Save Changes
-          </button> */}
         </div>
+
         {/* Context Input Section */}
         <div>
-          <h2 className="text-lg font-medium text-gray-700 mt-2 mb-2">Custom Assistant Context</h2>
+          <h2 className="text-lg font-medium mt-2 mb-2">Custom Assistant Context</h2>
           <p className="text-sm text-gray-500 mb-2">
-            Add any extra information you want the assistant to consider. For example: "I want responses to be brief"
+            Add any extra information you want the assistant to consider. 
+            For example: "I want responses to be brief"
           </p>
           <textarea
             className="w-full min-h-[100px] border border-gray-300 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -215,12 +296,14 @@ const isValidEmail = (email: string) =>
           <button
             onClick={() => {
               onUpdateContext(localContext);
-              setIsDirty(false); // Reset after save
+              setIsDirty(false);
             }}
             disabled={!isDirty}
-            className={`mt-3 -mb-3 w-full flex items-center justify-center px-4 py-2 rounded-lg transition-colors
-              ${isDirty ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-300 text-white cursor-not-allowed'}
-            `}
+            className={`mt-3 -mb-3 w-full flex items-center justify-center px-4 py-2 rounded-lg transition-colors ${
+              isDirty
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-gray-300 text-white cursor-not-allowed'
+            }`}
           >
             <Save className="w-5 h-5 mr-2" /> Save Context
           </button>
@@ -229,6 +312,5 @@ const isValidEmail = (email: string) =>
     </div>
   );
 };
-
 
 export default ProfilePage;
