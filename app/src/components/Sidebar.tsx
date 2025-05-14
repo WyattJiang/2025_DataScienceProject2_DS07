@@ -174,10 +174,11 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
         <button
           onClick={onLogout}
-          className="mt-2 w-full text-left p-2 text-sm rounded-md flex items-center transition-colors"
+          className="mt-2 w-full text-left p-2 text-sm rounded-md flex items-center justify-center transition-colors border hover:bg-opacity-10" 
           style={{
             backgroundColor: 'var(--background-color)',
             color: 'var(--primary-color)',
+            borderColor: 'var(--primary-color)',
           }}
         >
           <LogOut className="mr-2 h-4 w-4 flex-shrink-0" /> Logout

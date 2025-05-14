@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { UserRole } from './config';
 
-type Mode = 'city' | 'coords';
+type Mode = 'city' | 'coords' | 'suburb';
 
 interface WeatherData {
     location: { name: string; region: string; country: string; lat: number; lon: number; localtime: string };
@@ -9,6 +11,7 @@ interface WeatherData {
       temp_c: number;
       feelslike_c: number;
       humidity: number;
+      heatindex_c: number;
       cloud: number;
       uv: number;
       dewpoint_c: number;
@@ -30,14 +33,29 @@ interface WeatherData {
         'gb-defra-index': number;
       };
     };
+    forecast: {
+      forecastday:{
+        astro: {
+          sunrise: string;
+          sunset: string;
+          moonrise: string;
+          moonset: string;
+          moonphase: string;
+          moon_illumination: number;
+          is_sun_up: number;
+          is_moon_up: number;
+        };
+      }[];
+    };
   }
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
+  currentUserRole: UserRole;
 };
 
-const RealTimeWeather: React.FC<Props> = ({ isOpen, onClose }) => {
+const RealTimeWeather: React.FC<Props> = ({ isOpen, onClose, currentUserRole }) => {
   if (!isOpen) return null;
 
   const apiKey = import.meta.env.VITE_APP_API_KEY;
@@ -48,15 +66,73 @@ const RealTimeWeather: React.FC<Props> = ({ isOpen, onClose }) => {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const genAI = new GoogleGenerativeAI(import.meta.env.VITE_APP_GEMINI);
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const [suburb, setSuburb] = useState('Clayton');
+  const [displayLocation, setDisplayLocation] = useState('');
+  const [animationKey, setAnimationKey] = useState(0);
+
+  useEffect(() => {
+      fetchWeather()
+  }, []);
+
+  useEffect(() => {
+    if (!weatherData) return;
+
+    const progress = getSunProgress();
+    const monprogress = getMoonProgress();
+
+    const styleId = 'sun-progress-animation';
+    const monstyleId = 'moon-progress-animation';
+
+    // Remove previous sun style if it exists
+    const oldStyle = document.getElementById(styleId);
+    if (oldStyle) oldStyle.remove();
+
+    // Remove previous moon style if it exists
+    const oldMonStyle = document.getElementById(monstyleId);
+    if (oldMonStyle) oldMonStyle.remove();
+
+    // Create new sun keyframe style
+    const sunStyle = document.createElement('style');
+    sunStyle.id = styleId;
+    sunStyle.innerHTML = `
+      @keyframes moveSun {
+        from { left: 0%; }
+        to { left: ${progress}%; }
+      }
+    `;
+    document.head.appendChild(sunStyle);
+
+    // Create new moon keyframe style
+    const moonStyle = document.createElement('style');
+    moonStyle.id = monstyleId;
+    moonStyle.innerHTML = `
+      @keyframes moveMoon {
+        from { left: 0%; }
+        to { left: ${monprogress}%; }
+      }
+    `;
+    document.head.appendChild(moonStyle);
+  }, [weatherData]);
+
 
   const fetchWeather = async () => {
     if (!apiKey) return setError('API key missing.');
 
     let query = '';
-    if (mode === 'city') query = city.trim();
-    else if (mode === 'coords') query = `${lat.trim()},${lon.trim()}`;
-
-    const url = `https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${query}&aqi=yes`;
+    if (mode === 'city') {
+    query = city.trim();
+    } else if (mode === 'coords') {
+    query = `${lat.trim()},${lon.trim()}`;
+    } else if (mode === 'suburb') {
+    const fullPrompt = `ONLY give me the decimal latitude and longitude of this location (likely in Australia, Be accurate with the lat and lon): ${suburb}. Format: -37.81, 144.96`;
+    const result = await model.generateContent(fullPrompt);
+    const response = await result.response;
+    const locationText = response.text().trim();
+    query = locationText;
+    }
+    const url = `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${query}&days=1&aqi=yes`;
 
     try {
       setLoading(true);
@@ -68,10 +144,92 @@ const RealTimeWeather: React.FC<Props> = ({ isOpen, onClose }) => {
       }
       const data = await res.json();
       setWeatherData(data);
+      setAnimationKey(prev => prev + 1); 
+      if (mode === 'suburb') {
+      setDisplayLocation(suburb);
+      } else {
+      setDisplayLocation(data.location.name);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+  const getSunProgress = () => {
+    if (!weatherData) return 0;
+    const { sunrise, sunset } = weatherData?.forecast.forecastday[0].astro;    
+    const now = new Date(weatherData.location.localtime);
+
+    const parseTime = (t: string) => {
+      const [time, period] = t.split(' ');
+      let [h, m] = time.split(':').map(Number);
+      if (period === 'PM' && h !== 12) h += 12;
+      if (period === 'AM' && h === 12) h = 0;
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+    };
+
+    const start = parseTime(sunrise);
+    const end = parseTime(sunset);
+    const total = end.getTime() - start.getTime();
+    const elapsed = now.getTime() - start.getTime();
+    return Math.max(0, Math.min(100, (elapsed / total) * 100));
+  };
+
+  const getMoonProgress = () => {
+    if (!weatherData) return 0;
+    const { moonrise, moonset } = weatherData?.forecast.forecastday[0].astro;    
+    const now = new Date(weatherData.location.localtime);
+
+    const parseTime = (t: string) => {
+      const [time, period] = t.split(' ');
+      let [h, m] = time.split(':').map(Number);
+      if (period === 'PM' && h !== 12) h += 12;
+      if (period === 'AM' && h === 12) h = 0;
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+    };
+
+    const start = parseTime(moonrise);
+    const end = parseTime(moonset);
+    const total = end.getTime() - start.getTime();
+    const elapsed = now.getTime() - start.getTime();
+    return Math.max(0, Math.min(100, (elapsed / total) * 100));
+  };
+
+  const getMetricsForRole = () => {
+    const commonMetrics = [
+      { label: 'Temperature', value: `${weatherData?.current.temp_c}°C` },
+      { label: 'Feels Like', value: `${weatherData?.current.feelslike_c}°C` },
+      { label: 'Humidity', value: `${weatherData?.current.humidity}%` },
+      { label: 'UV Index', value: `${weatherData?.current.uv}` },
+      { label: 'Wind Speed', value: `${weatherData?.current.wind_kph} km/h` },
+      { label: 'Visibility', value: `${weatherData?.current.vis_km} km` },
+    ];
+
+    const farmerMetrics = [
+      { label: 'Dew Point', value: `${weatherData?.current.dewpoint_c}°C` },
+      { label: 'Precipitation', value: `${weatherData?.current.precip_mm} mm` },
+      { label: 'Cloud Cover', value: `${weatherData?.current.cloud}%` },
+      { label: 'Pressure', value: `${weatherData?.current.pressure_mb} mb` },
+      { label: 'Gust Speed', value: `${weatherData?.current.gust_kph} km/h` },
+      { label: 'Heat Index', value: `${weatherData?.current.heatindex_c}°C` },
+    ];
+
+    const plannerMetrics = [
+      { label: 'Air Quality Index', value: `${weatherData?.current.air_quality?.['us-epa-index'] ?? 'N/A'}` },
+      { label: 'PM2.5', value: `${weatherData?.current.air_quality?.['pm2_5'] ?? 'N/A'}` },
+      { label: 'PM10', value: `${weatherData?.current.air_quality?.pm10 ?? 'N/A'}` },
+      { label: 'Pressure', value: `${weatherData?.current.pressure_mb} mb` },
+      { label: 'Cloud Cover', value: `${weatherData?.current.cloud}%` },
+      { label: 'Dew Point', value: `${weatherData?.current.dewpoint_c}°C` },
+    ];
+
+    if (currentUserRole === 'farmer') {
+      return [...commonMetrics, ...farmerMetrics];
+    } else if (currentUserRole === 'urban_planner') {
+      return [...commonMetrics, ...plannerMetrics];
+    } else {
+      return [...commonMetrics];
     }
   };
 
@@ -82,10 +240,10 @@ const RealTimeWeather: React.FC<Props> = ({ isOpen, onClose }) => {
           <X className="w-6 h-6" />
         </button>
 
-        <h2 className="text-xl font-semibold mb-4">Real-time Weather Search</h2>
+        <h2 className="text-3xl font-bold mb-4 text-center">Real-time Weather Search</h2>
 
         {/* Input Mode Toggle */}
-        <div className="mb-4 flex items-center space-x-4">
+        <div className="mb-4 flex items-center justify-center space-x-4">
           <label>
             <input
               type="radio"
@@ -94,7 +252,7 @@ const RealTimeWeather: React.FC<Props> = ({ isOpen, onClose }) => {
               onChange={() => setMode('city')}
               className="mr-1"
             />
-            City/Suburb
+            City
           </label>
           <label>
             <input
@@ -104,114 +262,168 @@ const RealTimeWeather: React.FC<Props> = ({ isOpen, onClose }) => {
               onChange={() => setMode('coords')}
               className="mr-1"
             />
-            Coordinates (Lat, Lon)
+            Coordinates (in decimal degrees)
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="mode"
+              checked={mode === 'suburb'}
+              onChange={() => setMode('suburb')}
+              className="mr-1"
+            />
+            Suburb
           </label>
         </div>
 
         {/* Input Fields */}
-        {mode === 'city' ? (
-          <input
-            type="text"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            placeholder="Enter city or suburb"
-            className="border p-2 w-full rounded mb-4"
-          />
-        ) : (
-          <div className="flex space-x-2 mb-4">
-            <input
-              type="text"
-              value={lat}
-              onChange={(e) => setLat(e.target.value)}
-              placeholder="Latitude"
-              className="border p-2 w-1/2 rounded"
-            />
-            <input
-              type="text"
-              value={lon}
-              onChange={(e) => setLon(e.target.value)}
-              placeholder="Longitude"
-              className="border p-2 w-1/2 rounded"
-            />
-          </div>
-        )}
-
-        <button
-          onClick={fetchWeather}
-          className="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        <form
+          onSubmit={(e) => {
+            e.preventDefault(); // Prevent page reload
+            fetchWeather();     // Call your search function
+          }}
+          className="flex space-x-4 mb-4 items-center justify-center"
         >
-          Search
-        </button>
+          {mode === 'city' ? (
+            <input
+              type="text"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Enter city name"
+              className="border p-2 w-full max-w-md mb-4 rounded"
+            />
+          ) : mode === 'coords' ? (
+            <div className="flex space-x-2 mb-4">
+              <input
+                type="text"
+                value={lat}
+                onChange={(e) => setLat(e.target.value)}
+                placeholder="Latitude"
+                className="border p-2 w-1/2 rounded"
+              />
+              <input
+                type="text"
+                value={lon}
+                onChange={(e) => setLon(e.target.value)}
+                placeholder="Longitude"
+                className="border p-2 w-1/2 rounded"
+              />
+            </div>
+          ) : (
+            <input
+              type="text"
+              value={suburb}
+              onChange={(e) => setSuburb(e.target.value)}
+              placeholder="Enter suburb name"
+              className="border p-2 w-full max-w-md mb-4 rounded"
+            />
+          )}
+
+          <button type="submit" className="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+            Search
+          </button>
+        </form>
 
         {/* Output Section */}
-        {loading && <p className="text-gray-500">Loading...</p>}
-        {error && <p className="text-red-500">{error}</p>}
+        {loading && (
+            <div className="flex justify-center items-center h-64">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        )}
+
+        {error &&( 
+            <div className="flex justify-center items-center h-64">
+            <p className="mt-4 text-red-600">Invalid Input</p>
+            </div>
+        )}
 
         {weatherData && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
           <div className="bg-gradient-to-br from-blue-900 to-blue-500 text-white p-6 rounded-xl shadow-md">
-            <div className="flex justify-between items-center mb-3">
+            <div className="flex justify-center items-center mb-3 ">
+                <h3 className="text-3xl font-semibold">{displayLocation}, {weatherData.location.country}</h3>
+            </div>
+            <div className="flex justify-center items-center mb-3 space-x-30">
               <div className="flex items-center space-x-2">
                 <img src={`https:${weatherData.current.condition.icon}`} alt={weatherData.current.condition.text} className="w-30 h-30" />
                 <div className="text-xl">{weatherData.current.condition.text}</div>
               </div>
               <div className="text-4xl font-bold w-30">{weatherData.current.temp_c}°C</div>
             </div>
-            <div className="bg-gradient-to-br from-cyan-100 via-blue-100 to-indigo-100 p-4 mx-auto w-full max-w-md text-center rounded-xl text-black  shadow-md">
+            <div className="bg-gradient-to-br from-cyan-100 via-blue-100 to-indigo-100 p-6 mx-auto w-full max-w-md text-center rounded-xl text-black  shadow-md">
             <h4 className="text-3xl font-semibold mb-10 underline">Weather Details</h4>
                 <div className="text-lg grid grid-cols-2 gap-y-10 gap-x-6">
-                    <p>Feels like: {weatherData.current.feelslike_c}°C</p>
-                    <p>Wind: {weatherData.current.wind_kph} km/h ({weatherData.current.wind_dir})</p>
-                    <p>Gust: {weatherData.current.gust_kph} km/h</p>
-                    <p>Humidity: {weatherData.current.humidity}%</p>
-                    <p>Cloud cover: {weatherData.current.cloud}%</p>
-                    <p>UV index: {weatherData.current.uv}</p>
-                    <p>Pressure: {weatherData.current.pressure_mb} mb</p>
-                    <p>Precipitation: {weatherData.current.precip_mm} mm</p>
-                    <p>Visibility: {weatherData.current.vis_km} km</p>
-                    <p>Dew Point: {weatherData.current.dewpoint_c}°C</p>
+                  {getMetricsForRole().map((metric, index) => (
+                    <p key={index}>{metric.label}: {metric.value}</p>
+                  ))}
                 </div>
             </div>
           </div>
 
-            <div className="bg-gradient-to-br from-orange-200 via-red-100 to-pink-100 p-6 rounded-2xl shadow-lg text-sm text-gray-800 space-y-6">
-            {/* Location Info Card */}
-            <div className="bg-gradient-to-br from-yellow-200 via-yellow-100 to-amber-100 p-6 rounded-2xl shadow-lg text-sm text-gray-800 space-y-6">
-                <div className="bg-gradient-to-br from-yellow-100 via-yellow-50 to-amber-50 p-5 rounded-xl text-center text-black shadow-sm max-w-md mx-auto">
-                    <h3 className="text-lg font-semibold mb-1 underline">Location Info</h3>
-                    <table className="w-full text-left text-sm">
-                    <tbody>
-                        <tr><td className="font-medium pr-2">Country:</td><td>{weatherData.location.country}</td></tr>
-                        <tr><td className="font-medium pr-2">Region:</td><td>{weatherData.location.region}</td></tr>
-                        <tr><td className="font-medium pr-2">Lat/Lon:</td><td>{weatherData.location.lat.toFixed(2)}, {weatherData.location.lon.toFixed(2)}</td></tr>
-                        <tr><td className="font-medium pr-2">Local Time:</td><td>{weatherData.location.localtime}</td></tr>
-                        <tr><td className="font-medium pr-2">Time Zone ID:</td><td>Australia/Melbourne</td></tr>
-                        <tr><td className="font-medium pr-2">Sunrise:</td><td>7:11 am</td></tr>
-                        <tr><td className="font-medium pr-2">Sunset:</td><td>5:26 pm</td></tr>
-                    </tbody>
-                    </table>
+          <div className="bg-gradient-to-br from-orange-200 via-red-100 to-pink-100 p-10 rounded-2xl shadow-lg text-sm text-gray-800 space-y-10">
+            <div className="text-center text-3xl font-medium mb-5">
+              🕒 Local Time: {weatherData.location.localtime}
+            </div>
+            {/* ☀️ Sun Arc */}
+            <div>
+              <h3 className="text-lg font-semibold text-center mb-2">Sun Path</h3>
+              <div className="relative w-full h-32">
+                <svg viewBox="0 0 100 50" preserveAspectRatio="none" className="w-full h-full">
+                  <path
+                    id="sunArcPath"
+                    d="M 0 40 Q 50 -10 100 40"
+                    fill="rgba(255, 223, 96, 0.3)"
+                    stroke="#f59e0b"
+                    strokeWidth="2"
+                  />
+                </svg>
+                <div className="absolute left-0 top-[85%] text-sm">🌅 {weatherData.forecast.forecastday[0].astro.sunrise}</div>
+                <div className="absolute right-0 top-[85%] text-sm">🌇 {weatherData.forecast.forecastday[0].astro.sunset}</div>
+                <div
+                  key={`sun-${animationKey}`}
+                  className="absolute top-[20%] text-xl"
+                  style={{
+                    left: weatherData ? `${getSunProgress()}%` : '0%',
+                    transform: 'translateX(-50%)',
+                    animation: 'moveSun 3s ease-out'
+                  }}
+                >
+                  ☀️
                 </div>
+              </div>
             </div>
 
-            {/* Air Quality Card */}
-            {weatherData.current.air_quality && (
-                 <div className="bg-gradient-to-br from-sky-400 via-blue-250 to-indigo-200 p-6 rounded-2xl shadow-lg text-sm text-gray-800 mt-6">
-                 <div className="bg-gradient-to-br from-sky-300 via-blue-150 to-indigo-100  p-5 rounded-xl text-center text-black shadow-sm max-w-md mx-auto">
-                   <h4 className="text-lg font-semibold mb-1 underline">Air Quality (µg/m³)</h4>
-                   <ul className="list-disc text-left pl-6 text-sm space-y-1">
-                     <li><strong>CO:</strong> {weatherData.current.air_quality.co}</li>
-                     <li><strong>NO₂:</strong> {weatherData.current.air_quality.no2}</li>
-                     <li><strong>O₃:</strong> {weatherData.current.air_quality.o3}</li>
-                     <li><strong>SO₂:</strong> {weatherData.current.air_quality.so2}</li>
-                     <li><strong>PM2.5:</strong> {weatherData.current.air_quality['pm2_5']}</li>
-                     <li><strong>PM10:</strong> {weatherData.current.air_quality.pm10}</li>
-                     <li><strong>US EPA Index:</strong> {weatherData.current.air_quality['us-epa-index']}</li>
-                     <li><strong>DEFRA Index:</strong> {weatherData.current.air_quality['gb-defra-index']}</li>
-                   </ul>
-                 </div>
-               </div>
+            {/* 🌙 Moon Arc */}
+            {weatherData.forecast.forecastday[0].astro.is_moon_up === 1 && (
+              <div>
+                <h3 className="text-lg font-semibold text-center mb-2">Moon Path</h3>
+                <div className="relative w-full h-32">
+                  <svg viewBox="0 0 100 50" preserveAspectRatio="none" className="w-full h-full">
+                    <path
+                      id="moonArcPath"
+                      d="M 0 40 Q 50 -10 100 40"
+                      fill="rgba(190, 224, 255, 0.3)"
+                      stroke="#3b82f6"
+                      strokeWidth="2"
+                    />
+                  </svg>
+                  <div className="absolute left-0 top-[85%] text-sm">🌙 {weatherData.forecast.forecastday[0].astro.moonrise}</div>
+                  <div className="absolute right-0 top-[85%] text-sm">🌘 {weatherData.forecast.forecastday[0].astro.moonset}</div>
+                  <div
+                    key={`moon-${animationKey}`}
+                    className="absolute top-[20%] text-xl"
+                    style={{
+                      left: weatherData ? `${getMoonProgress()}%` : '0%',
+                      transform: 'translateX(-50%)',
+                      animation: 'moveMoon 3s ease-out'
+                    }}
+                  >
+                    🌕
+                  </div>
+                </div>
+              </div>
             )}
-            </div>
+          </div>
         </div>
       )}
     </div>
