@@ -144,7 +144,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, appName = "Climat
                 required
               />
               <p className="text-center text-xs text-gray-500 mt-1">
-                Password must be at least 8 characters, with one number and one special character.
+                Password must be at least 8 characters, with one number and one special character(!@#$%^&-?).
               </p>
             </div>
           )}
