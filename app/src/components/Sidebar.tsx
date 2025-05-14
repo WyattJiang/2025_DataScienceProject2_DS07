@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { MapIcon, MessageSquare, CircleHelp, ChartLine, Cloud, LogOut, Tractor, Building2, Users, Telescope} from 'lucide-react';
-import { UserRole, ROLES_CONFIG, getConfigForRole } from '../config';
+import { UserRole, getConfigForRole } from '../config';
 import '../themes.css';
 
 type SidebarProps = {
@@ -12,6 +12,7 @@ type SidebarProps = {
   onToggleLayer: (layerKey: string) => void;
   onLogout: () => void;
   onOpenHowTo: () => void;
+  onOpenCitations: () => void;
 };
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -23,6 +24,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onToggleLayer,
   onLogout,
   onOpenHowTo,
+  onOpenCitations,
 }) => {
   const [theme, setTheme] = useState<'default' | 'color-blind' | 'high-contrast'>('default');
 
@@ -149,6 +151,14 @@ const Sidebar: React.FC<SidebarProps> = ({
           className="w-full text-left p-2.5 text-sm rounded-md flex items-center hover:opacity-80"
         >
           <CircleHelp className="mr-3 h-5 w-5 flex-shrink-0" /> How to use?
+        </button>
+
+        {/* Data Citations */}
+        <button
+          onClick={onOpenCitations}
+          className="w-full text-left p-2.5 text-sm rounded-md flex items-center hover:opacity-80"
+        >
+          <CircleHelp className="mr-3 h-5 w-5 flex-shrink-0" /> Data Sources & Processing
         </button>
       </nav>
 
