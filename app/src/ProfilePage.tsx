@@ -1,5 +1,5 @@
 //// filepath: c:\Users\14224\Documents\GitHub\2025_DataScienceProject2_DS07\app\src\ProfilePage.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { UserRole, ROLES_CONFIG, getConfigForRole } from './config';
 import { User, ArrowLeft, Save, CheckSquare, Square } from 'lucide-react';
 
@@ -10,6 +10,7 @@ interface ProfilePageProps {
   onUpdateContext: (context: string) => void;
   onRoleChange: (newRole: UserRole) => void;
   onBackToDashboard: () => void;
+  theme: 'default' | 'color-blind' | 'high-contrast';
 }
 
 const ProfilePage: React.FC<ProfilePageProps> = ({
@@ -19,6 +20,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   onUpdateContext,
   onRoleChange,
   onBackToDashboard,
+  theme,
 }) => {
   const [localContext, setLocalContext] = useState<string>(additionalContext);
   const availableRoles: UserRole[] = ['general_public', 'farmer', 'urban_planner'];
@@ -32,69 +34,34 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [updateMessage, setUpdateMessage] = useState('');
+  const [messageType, setMessageType] = useState<'success' | 'error'>('error');
 
   const isValidPassword = (password: string) =>
-    /^(?=.*[!@#$%^&*])(?=.*\d)[A-Za-z\d!@#$%^&*]{8,}$/.test(password);
+    /^(?=.*[!@#$%^&-?*])(?=.*\d)[A-Za-z\d!@#$%^&*]{8,}$/.test(password);
 
   const isValidEmail = (email: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  // ==================================
-  //theme change 
-  // ==================================
-  type ThemeType = 'default' | 'color-blind' | 'high-contrast';
-  const getStoredTheme = (): ThemeType => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('preferredTheme');
-      if (saved === 'color-blind' || saved === 'high-contrast') {
-        return saved;
-      }
-    }
-    return 'default';
-  };
-
-  const [theme, setTheme] = useState<ThemeType>(getStoredTheme);
-
-  const handleThemeChange = (newTheme: ThemeType) => {
-    setTheme(newTheme);
-    document.documentElement.className = newTheme === 'default' ? '' : `${newTheme}-theme`;
-    localStorage.setItem('preferredTheme', newTheme);
-  };
-
-  useEffect(() => {
-    // loading the theme from localStorage
-    document.documentElement.className = theme === 'default' ? '' : `${theme}-theme`;
-  }, [theme]);
-
-  const themeOptions = [
-    { value: 'default', label: 'Default' },
-    { value: 'color-blind', label: 'Color Blind' },
-    { value: 'high-contrast', label: 'High Contrast' },
-  ];
-
-  // if it is in high contrast mode, set the text color to white and background color to black
-  const textColorStyle = theme === 'high-contrast' ? '#FFFFFF' : 'var(--text-color, #000000)';
-  const cardBackgroundStyle = theme === 'high-contrast' ? '#000000' : 'var(--card-background-color, #FFFFFF)';
-
   return (
     <div
-      className="flex flex-col items-center h-full overflow-y-auto p-6 sm:p-8"
-      style={{
-        backgroundColor: 'var(--background-color, #FFFFFF)',
-        color: textColorStyle,
-      }}
+      className={`flex flex-col items-center h-full overflow-y-auto p-6 sm:p-8 ${theme}-theme`}
     >
+
       <div
         className="w-full max-w-lg p-6 sm:p-8 rounded-xl shadow-md border border-gray-200 -mt-7 -mb-6"
         style={{
-          backgroundColor: cardBackgroundStyle,
-          color: textColorStyle,
+          backgroundColor: 'var(--card-background-color)',
+          color: 'var(--text-color)'  ,
         }}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
           <div className="flex items-center">
-            <User className="w-6 h-6 mr-3 text-blue-600" />
+            <User className="w-6 h-6 mr-3 text-blue-600 rounded" 
+            style={{
+            backgroundColor: 'var(--primary-color)' ,
+            color:'var(--background-color)',
+          }} />
             <h1 className="text-xl font-semibold">
               User Profile & Role
             </h1>
@@ -122,34 +89,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
           </div>
         </div>
 
-        {/* Theme Selection Buttons */}
-        <div className="mb-6">
-          <h2 className="text-lg font-medium mb-3">Theme Selection</h2>
-          <p className="text-sm text-gray-500 mb-4">
-            Choose a theme for the entire application interface.
-          </p>
-          <div className="space-y-3">
-            {themeOptions.map((t) => (
-              <button
-                key={t.value}
-                onClick={() => handleThemeChange(t.value)}
-                className={`w-full flex items-center justify-between p-3 border rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 ${
-                  theme === t.value
-                    ? 'border-blue-500 bg-blue-50 text-blue-700 ring-blue-500'
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
-                }`}
-              >
-                <span className="font-medium">{t.label}</span>
-                {theme === t.value ? (
-                  <CheckSquare className="w-5 h-5 text-blue-600" />
-                ) : (
-                  <Square className="w-5 h-5 text-gray-400" />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Change Email/Password Section */}
         <div className="space-y-3 mb-6">
           <button
@@ -161,7 +100,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
           {showUpdateForm && (
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium">Current Password (Required)</label>
+                <label className="block text-sm font-medium required">Current Password</label>
                 <input
                   type="password"
                   value={currentPassword}
@@ -170,16 +109,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium">New Email (Optional)</label>
-                <input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full p-2 border rounded-md"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">New Password (Optional)</label>
+                <label className="block text-sm font-medium required">New Password</label>
                 <input
                   type="password"
                   value={newPassword}
@@ -188,7 +118,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium">Confirm New Password</label>
+                <label className="block text-sm font-medium required:">Confirm New Password</label>
                 <input
                   type="password"
                   value={confirmNewPassword}
@@ -197,18 +127,21 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                 />
               </div>
               {updateMessage && (
-                <p className="text-sm text-center text-red-500">{updateMessage}</p>
+                <p className={`text-sm text-center ${messageType === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+                  {updateMessage}
+                </p>
               )}
               <button
                 onClick={async () => {
                   setUpdateMessage('');
-                  // 验证密码
                   if (newPassword) {
                     if (newPassword !== confirmNewPassword) {
+                      setMessageType('error');
                       setUpdateMessage('New passwords do not match.');
                       return;
                     }
                     if (!isValidPassword(newPassword)) {
+                      setMessageType('error');
                       setUpdateMessage(
                         'Password must be at least 8 characters long and include one number and one special character.'
                       );
@@ -216,6 +149,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                     }
                   }
                   if (newEmail && !isValidEmail(newEmail)) {
+                    setMessageType('error');
                     setUpdateMessage(
                       "Please include an '@' in the email address. 'a' is missing an '@'"
                     );
@@ -234,13 +168,19 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                     });
                     const data = await res.json();
                     if (!res.ok) throw new Error(data.error || 'Update failed.');
+                    setMessageType('success');
                     setUpdateMessage('Update successful. Please re-login if you changed your email.');
                   } catch (err: any) {
+                    setMessageType('error');
                     setUpdateMessage(err.message || 'Update failed.');
                   }
                 }}
-                className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg"
-              >
+                className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg" 
+              style={{
+            backgroundColor: 'var(--primary-color)' ,
+            color:'var(--background-color)',
+          }}  
+          >
                 Save Changes
               </button>
             </div>
@@ -255,7 +195,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
             to better suit your needs. Your current role is:{' '}
             <strong className="text-indigo-600">{currentConfig.displayName}</strong>.
           </p>
-          <div className="space-y-3">
+          <div className="space-y-3" >
             {availableRoles.map((role) => (
               <button
                 key={role}

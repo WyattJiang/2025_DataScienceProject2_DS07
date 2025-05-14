@@ -17,6 +17,7 @@ type MainContentProps = {
   activeLayers: { [key: string]: boolean };
   onToggleLayer: (layerKey: string) => void;
   mapHtmlPath: string;
+  theme: 'default' | 'color-blind' | 'high-contrast';
 };
 
 const MainContent: React.FC<MainContentProps> = ({
@@ -30,6 +31,7 @@ const MainContent: React.FC<MainContentProps> = ({
   activeLayers,
   onToggleLayer,
   mapHtmlPath,
+  theme
 }) => {
   const closeChatbot = () => {
     if (activePage === 'chatbot') {
@@ -48,6 +50,7 @@ const MainContent: React.FC<MainContentProps> = ({
           onRoleChange={onRoleChange} 
           onUpdateContext={onUpdateContext}
           onBackToDashboard={() => onNavigate('dashboard')} 
+          theme={theme}
         />
       )}
 
