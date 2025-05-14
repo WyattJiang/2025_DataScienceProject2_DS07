@@ -11,7 +11,8 @@
 }
 
 .high-contrast-theme {
-  --primary-color: #ffff00; 
-  --background-color: #000000;
-  --text-color: #ffffff;
+  --background-color: #000;
+  --text-color: #fff;
+  --card-background-color: #000;
+  /* 其他高对比度模式下使用的颜色变量 */
 }

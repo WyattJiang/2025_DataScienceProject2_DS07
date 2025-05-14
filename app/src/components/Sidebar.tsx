@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { MapIcon, MessageSquare, CircleHelp, ChartLine, Cloud, LogOut, Tractor, Building2, Users, Telescope} from 'lucide-react';
-import { UserRole, ROLES_CONFIG, getConfigForRole } from '../config';
+import React from 'react';
+import { MapIcon, MessageSquare, CircleHelp, ChartLine, Cloud, LogOut, Tractor, Building2, Users, Telescope } from 'lucide-react';
+import { UserRole, getConfigForRole } from '../config';
 import '../themes.css';
 
 type SidebarProps = {
@@ -24,13 +24,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   onLogout,
   onOpenHowTo,
 }) => {
-  const [theme, setTheme] = useState<'default' | 'color-blind' | 'high-contrast'>('default');
-
-  const handleThemeChange = (newTheme: 'default' | 'color-blind' | 'high-contrast') => {
-    setTheme(newTheme);
-    document.documentElement.className = newTheme === 'default' ? '' : `${newTheme}-theme`;
-  };
-
   const username = userEmail?.split('@')[0] || 'unknown_user';
 
   return (
@@ -49,25 +42,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           </svg>
         </div>
         <h1 className="font-bold text-lg">Climates</h1>
-      </div>
-
-      {/* Theme Selector */}
-      <div className="p-4 border-b" style={{ borderColor: 'var(--text-color)' }}>
-        <h3 className="text-sm font-semibold mb-2">Theme</h3>
-        <select
-          value={theme}
-          onChange={(e) => handleThemeChange(e.target.value as typeof theme)}
-          className="w-full p-2 border rounded-md text-sm"
-          style={{
-            backgroundColor: 'var(--background-color)',
-            color: 'var(--text-color)',
-            borderColor: 'var(--text-color)',
-          }}
-        >
-          <option value="default">Default</option>
-          <option value="color-blind">Color Blind</option>
-          <option value="high-contrast">High Contrast</option>
-        </select>
       </div>
 
       {/* Navigation */}
@@ -141,7 +115,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             <Telescope className="mr-3 h-5 w-5 flex-shrink-0" /> Weather Forecast
           </button>
         </div>
-
 
         {/* How to use */}
         <button
