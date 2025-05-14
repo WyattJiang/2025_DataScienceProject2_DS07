@@ -1,6 +1,6 @@
 //// filepath: c:\Users\14224\Documents\GitHub\2025_DataScienceProject2_DS07\app\src\components\Sidebar.tsx
 import React from 'react';
-import { MapIcon, MessageSquare, CircleHelp, ChartLine, Cloud, LogOut, Tractor, Building2, Users, Telescope } from 'lucide-react';
+import { MapIcon, MessageSquare, CircleHelp, ChartLine, Cloud, LogOut, Tractor, Building2, Users, Telescope, CodeXml, Settings} from 'lucide-react';
 import { UserRole, getConfigForRole } from '../config';
 import '../themes.css';
 
@@ -14,6 +14,7 @@ type SidebarProps = {
   onLogout: () => void;
   onOpenHowTo: () => void;
   onOpenCitations: () => void;
+  onOpenSettings: () => void;
 };
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -26,6 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onLogout,
   onOpenHowTo,
   onOpenCitations,
+  onOpenSettings,
 }) => {
   const username = userEmail?.split('@')[0] || 'unknown_user';
 
@@ -127,13 +129,22 @@ const Sidebar: React.FC<SidebarProps> = ({
           <CircleHelp className="mr-3 h-5 w-5 flex-shrink-0" /> How to use?
         </button>
 
+        <button
+          onClick={onOpenSettings}
+          className="w-full text-left p-2.5 text-sm rounded-md flex items-center hover:opacity-80"
+        >
+          <Settings className='mr-3 h-5 w-5 flex-shrink-0' /> Settings
+        </button>
+
         {/* Data Citations */}
         <button
           onClick={onOpenCitations}
           className="w-full text-left p-2.5 text-sm rounded-md flex items-center hover:opacity-80"
         >
-          <CircleHelp className="mr-3 h-5 w-5 flex-shrink-0" /> Data Sources & Processing
+          <CodeXml className="mr-3 h-5 w-5 flex-shrink-0" /> Data Sources & Processing
         </button>
+
+        
       </nav>
 
       {/* Profile & Logout */}
