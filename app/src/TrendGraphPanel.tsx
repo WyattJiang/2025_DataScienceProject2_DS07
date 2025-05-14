@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid,
     Tooltip, Legend, ResponsiveContainer, ReferenceLine
 } from 'recharts';
+import { toPng } from 'html-to-image';
 
 interface SuburbOption {
     name: string;
@@ -15,9 +16,12 @@ interface TrendPoint {
     year: number;
     [key: string]: number | string;
 }
+
 const lineColors = ['#3b82f6', '#f97316', '#10b981', '#8b5cf6', '#ef4444'];
 
 const TrendGraphPanel: React.FC = () => {
+    const chartRef = useRef<HTMLDivElement>(null);
+
     const [searchInput, setSearchInput] = useState('');
     const [selectedSuburbs, setSelectedSuburbs] = useState<string[]>(['Clayton']);
     const [suggestions, setSuggestions] = useState<SuburbOption[]>([]);
@@ -105,8 +109,8 @@ const TrendGraphPanel: React.FC = () => {
 
                 const finalData = Object.values(merged).sort((a, b) => a.year - b.year);
                 setData(finalData);
-                const allValues: number[] = [];
 
+                const allValues: number[] = [];
                 finalData.forEach(entry => {
                     selectedSuburbs.forEach(suburb => {
                         const val = entry[suburb];
@@ -162,9 +166,9 @@ const TrendGraphPanel: React.FC = () => {
                     <div className="mt-2 flex flex-wrap gap-2">
                         {selectedSuburbs.map((name) => (
                             <span key={name} className="bg-blue-100 px-2 py-1 rounded-md text-sm flex items-center gap-1">
-                                {name}
+                {name}
                                 <button onClick={() => removeSuburb(name)} className="text-red-500">✕</button>
-                            </span>
+              </span>
                         ))}
                     </div>
                 </div>
@@ -222,40 +226,70 @@ const TrendGraphPanel: React.FC = () => {
                 ) : data.length === 0 ? (
                     <div className="text-center text-gray-500">No data available</div>
                 ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart
-                            data={data}
-                            margin={{ top: 20, right: 30, left: 0, bottom: 40 }}  // ⬅️ Adds bottom margin
-                        >
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="year" />
-                            <YAxis
-                                domain={yAxisRange}
-                                allowDecimals={true}
-                                label={{
-                                    value: variable === 'precip' ? 'Precip (mm)' : 'Temp (°C)',
-                                    angle: -90,
-                                    position: 'insideLeft'
+                    <>
+                        <div ref={chartRef} className="bg-white p-4 rounded-md">
+                            <ResponsiveContainer width="100%" height={400}>
+                                <LineChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 40 }}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="year" />
+                                    <YAxis
+                                        domain={yAxisRange}
+                                        allowDecimals={true}
+                                        label={{
+                                            value: variable === 'precip' ? 'Precip (mm)' : 'Temp (°C)',
+                                            angle: -90,
+                                            position: 'insideLeft'
+                                        }}
+                                    />
+                                    <Tooltip />
+                                    <Legend verticalAlign="bottom" height={36} />
+                                    <ReferenceLine x={new Date().getFullYear()} stroke="gray" strokeDasharray="4 2" label="Now" />
+                                    {selectedSuburbs.map((name, index) => (
+                                        <Line
+                                            key={name}
+                                            type="monotone"
+                                            dataKey={name}
+                                            stroke={lineColors[index % lineColors.length]}
+                                            strokeWidth={2}
+                                            dot={{ r: 2 }}
+                                            name={`${name} (${season})`}
+                                        />
+                                    ))}
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <div className="mt-4 flex justify-center gap-4">
+                            <button
+                                onClick={() => {
+                                    const suburb = suburbs.find(s => s.name === selectedSuburbs[0])?.displayName || selectedSuburbs[0];
+                                    const url = `http://localhost:3001/api/trend-data-download?suburb=${encodeURIComponent(suburb)}&metric=${variable}&season=${season}&yearRange=${yearRange}`;
+                                    window.open(url, '_blank');
                                 }}
-                            />
+                                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                            >
+                                Download Data (JSON)
+                            </button>
 
-                            <Tooltip />
-                            <Legend verticalAlign="bottom" height={36} />  {/* ⬅️ Puts legend clearly below chart */}
-                            <ReferenceLine x={new Date().getFullYear()} stroke="gray" strokeDasharray="4 2" label="Now" />
-                            {selectedSuburbs.map((name, index) => (
-                                <Line
-                                    key={name}
-                                    type="monotone"
-                                    dataKey={name}
-                                    stroke={lineColors[index % lineColors.length]}
-                                    strokeWidth={2}
-                                    dot={{ r: 2 }}
-                                    name={`${name} (${season})`}
-                                />
-                            ))}
-                        </LineChart>
-                    </ResponsiveContainer>
+                            <button
+                                onClick={async () => {
+                                    if (!chartRef.current) return;
+                                    try {
+                                        const dataUrl = await toPng(chartRef.current);
+                                        const link = document.createElement('a');
+                                        link.download = 'trend-graph.png';
+                                        link.href = dataUrl;
+                                        link.click();
+                                    } catch (err) {
+                                        console.error('Download failed:', err);
+                                    }
+                                }}
+                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                            >
+                                Download Graph
+                            </button>
+                        </div>
 
+                    </>
                 )}
             </div>
         </div>
