@@ -42,8 +42,8 @@ const isValidEmail = (email: string) =>
   // For now, selection directly calls onRoleChange
 
   return (
-      <div className="flex flex-col items-center h-screen overflow-y-auto bg-gray-100 p-6 sm:p-8">
-      <div className="w-full max-w-lg bg-white p-6 sm:p-8 rounded-xl shadow-md border border-gray-200">
+      <div className="flex flex-col items-center h-full overflow-y-auto bg-gray-100 p-6 sm:p-8">
+        <div className="w-full max-w-lg bg-white p-6 sm:p-8 rounded-xl shadow-md border border-gray-200 -mt-7 -mb-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
            <div className='flex items-center'>
@@ -218,7 +218,7 @@ const isValidEmail = (email: string) =>
               setIsDirty(false); // Reset after save
             }}
             disabled={!isDirty}
-            className={`mt-3 w-full flex items-center justify-center px-4 py-2 rounded-lg transition-colors
+            className={`mt-3 -mb-3 w-full flex items-center justify-center px-4 py-2 rounded-lg transition-colors
               ${isDirty ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-300 text-white cursor-not-allowed'}
             `}
           >
