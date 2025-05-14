@@ -4,6 +4,7 @@ import ProfilePage from '../ProfilePage';
 import ChatPanel from './ChatPanel';
 import TrendGraphModal from './TrendGraphModal';
 import RealTimeWeather from '../RealTimeWeather';
+import Forecasting from '../Forecasting';
 
 type MainContentProps = {
   userEmail: string | null;
@@ -79,6 +80,15 @@ const MainContent: React.FC<MainContentProps> = ({
         isOpen={activeLayers.realtime} 
         onClose={() => onToggleLayer('realtime')} 
       />
+
+      {/* --- Weather Forecast --- */}
+      <Forecasting
+        isOpen={activeLayers.forecast} 
+        onClose={() => onToggleLayer('forecast')} 
+      />
+
+
+
     </div>
   );
 };

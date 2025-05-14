@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapIcon, MessageSquare, CircleHelp, ChartLine, Cloud, LogOut, Tractor, Building2, Users } from 'lucide-react';
+import { MapIcon, MessageSquare, CircleHelp, ChartLine, Cloud, LogOut, Tractor, Building2, Users, Telescope} from 'lucide-react';
 import { UserRole, ROLES_CONFIG, getConfigForRole } from '../config';
 import '../themes.css';
 
@@ -126,6 +126,22 @@ const Sidebar: React.FC<SidebarProps> = ({
             <Cloud className="mr-3 h-5 w-5 flex-shrink-0" /> Real Time Weather
           </button>
         </div>
+
+        {/* Forecasting Weather */}
+        <div className="pt-2">
+          <h3 className="px-2.5 text-xs font-semibold uppercase tracking-wider mb-1">Weather Forecast</h3>
+          <button
+            onClick={() => onToggleLayer('forecast')}
+            className="w-full text-left p-2.5 text-sm rounded-md flex items-center"
+            style={{
+              backgroundColor: activeLayers.forecast ? 'var(--primary-color)' : 'transparent',
+              color: activeLayers.forecast ? 'var(--background-color)' : 'var(--text-color)',
+            }}
+          >
+            <Telescope className="mr-3 h-5 w-5 flex-shrink-0" /> Weather Forecast
+          </button>
+        </div>
+
 
         {/* How to use */}
         <button
