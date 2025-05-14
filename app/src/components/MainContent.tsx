@@ -79,6 +79,7 @@ const MainContent: React.FC<MainContentProps> = ({
       <RealTimeWeather
         isOpen={activeLayers.realtime} 
         onClose={() => onToggleLayer('realtime')} 
+        currentUserRole={currentUserRole} 
       />
 
       {/* --- Weather Forecast --- */}

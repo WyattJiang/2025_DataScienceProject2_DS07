@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
+  LineChart, BarChart,Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from 'recharts';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
@@ -89,7 +89,8 @@ const Forecasting: React.FC<Props> = ({ isOpen, onClose }) => {
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     const [suburb, setSuburb] = useState('Clayton');
     const [displayLocation, setDisplayLocation] = useState('');
-
+    const [chartType, setChartType] = useState<'line' | 'bar'>('bar');
+    
 
 
     useEffect(() => {
@@ -107,7 +108,7 @@ const Forecasting: React.FC<Props> = ({ isOpen, onClose }) => {
         const result = await model.generateContent(fullPrompt);
         const response = await result.response;
         const locationText = response.text().trim();
-        query = locationText; // Expected: "-37.81, 144.96"
+        query = locationText; 
         }
         const url = `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${query}&days=${days}&aqi=yes&alerts=no`;
 
@@ -171,6 +172,7 @@ const Forecasting: React.FC<Props> = ({ isOpen, onClose }) => {
         return labels[metric] || metric;
     };
 
+
     return (
     <div className="fixed inset-0 z-[9999] bg-black bg-opacity-50 flex items-center justify-center">
         <div className="bg-white w-[90vw] h-[90vh] rounded-lg shadow-xl p-6 relative overflow-auto">
@@ -197,7 +199,7 @@ const Forecasting: React.FC<Props> = ({ isOpen, onClose }) => {
                 onChange={() => setMode('coords')}
                 className="mr-1"
             />
-            Coordinates
+            Coordinates (in decimal degrees)
             </label>
 
             <label>
@@ -210,63 +212,82 @@ const Forecasting: React.FC<Props> = ({ isOpen, onClose }) => {
             Suburb
             </label>
         </div>
-        <div className="flex space-x-4 mb-4 items-center justify-center">
-        
-        {mode === 'city' ? (
-  <input
-    type="text"
-    value={city}
-    onChange={(e) => setCity(e.target.value)}
-    placeholder="Enter city name"
-    className="border p-2 w-full max-w-md mb-4 rounded"
-  />
-        ) : mode === 'coords' ? (
-        <div className="flex space-x-4 mb-4 items-center justify-center">
+        <div className="flex justify-center mb-6">
+        <form
+            onSubmit={(e) => {
+            e.preventDefault();
+            fetchForecast();
+            }}
+            className="flex flex-wrap gap-4 items-center justify-center"
+        >
+            {mode === 'city' ? (
             <input
-            type="text"
-            value={lat}
-            onChange={(e) => setLat(e.target.value)}
-            placeholder="Latitude"
-            className="border p-2 w-1/2 rounded"
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Enter city name"
+                className="border p-2 rounded w-64"
             />
+            ) : mode === 'coords' ? (
+            <div className="flex space-x-2">
+                <input
+                type="text"
+                value={lat}
+                onChange={(e) => setLat(e.target.value)}
+                placeholder="Latitude"
+                className="border p-2 rounded w-32"
+                />
+                <input
+                type="text"
+                value={lon}
+                onChange={(e) => setLon(e.target.value)}
+                placeholder="Longitude"
+                className="border p-2 rounded w-32"
+                />
+            </div>
+            ) : (
             <input
-            type="text"
-            value={lon}
-            onChange={(e) => setLon(e.target.value)}
-            placeholder="Longitude"
-            className="border p-2 w-1/2 rounded"
+                type="text"
+                value={suburb}
+                onChange={(e) => setSuburb(e.target.value)}
+                placeholder="Enter suburb name"
+                className="border p-2 rounded w-64"
             />
-        </div>
-        ) : (
-        <input
-            type="text"
-            value={suburb}
-            onChange={(e) => setSuburb(e.target.value)}
-            placeholder="Enter suburb name"
-            className="border p-2 w-full max-w-md mb-4 rounded"
-        />
-        )}
-        <div className="flex -ml-2   mb-4 items-center justify-center">
-        <p>Days:</p>
-        <input 
-            type="number"
-            value={days}
-            min={1}
-            max={5}
-            onChange={(e)=> setDays(Number(e.target.value))}  
-            className='border p-2 ml-2 mr-3 w-1/2 rounded'    
-        />
+            )}
+
+            <div className="flex items-center space-x-2">
+            <label className="text-sm font-medium">Days:</label>
+            <input
+                type="number"
+                value={days}
+                min={1}
+                max={5}
+                onChange={(e) => setDays(Number(e.target.value))}
+                className="border p-2 rounded w-20"
+            />
+            </div>
+
+            <button
+            type="submit"
+            className="px-4 py-2 bg-blue-600 text-white rounded border border-blue-700 hover:bg-blue-700 transition"
+            >
+            Get Forecast
+            </button>
+        </form>
         </div>
 
-        <button
-            onClick={fetchForecast}
-            className="px-4 py-2.5 mb-4 -ml-3 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-            Get Forecast
-        </button>
-        </div>
-        {loading && <p className="mt-4 text-gray-500">Loading forecast...</p>}
-        {error && <p className="mt-4 text-red-600">{error}</p>}
+        
+        {loading && (
+            <div className="flex justify-center items-center h-64">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        )}
+
+        {error &&( 
+            <div className="flex justify-center items-center h-64">
+            <p className="mt-4 text-red-600">Invalid Input</p>
+            </div>
+        )}
 
         {data && (
             <div className="mt-8 space-y-6">
@@ -336,6 +357,16 @@ const Forecasting: React.FC<Props> = ({ isOpen, onClose }) => {
                     <option value="metric">Metric System</option>
                     <option value="imperial">Imperial System</option>
                     </select>
+
+                    {/* Trend type selector */}
+                    <select
+                        value={chartType}
+                        onChange={(e) => setChartType(e.target.value as 'line' | 'bar')}
+                        className="border p-2 rounded text-sm"
+                    >
+                        <option value="bar">Bar Chart</option>
+                        <option value="line">Line Chart</option>
+                    </select>
                 </div>
 
                 {/* Line Chart */}
@@ -345,6 +376,7 @@ const Forecasting: React.FC<Props> = ({ isOpen, onClose }) => {
                     </h3>
                 </div>
                 <ResponsiveContainer width="100%" height={500}>
+                    {chartType === 'line' ? (
                     <LineChart data={popupDay.hour}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="time" tickFormatter={(t) => t.slice(11, 16)} />
@@ -362,6 +394,22 @@ const Forecasting: React.FC<Props> = ({ isOpen, onClose }) => {
                         dot={false}
                     />
                     </LineChart>
+                ) : (
+                    <BarChart data={popupDay.hour}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="time" tickFormatter={(t) => t.slice(11, 16)} />
+                    <YAxis unit={getUnitLabel(selectedMetric, unitSystem)} />
+                    <Tooltip
+                        labelFormatter={(time) => `Time: ${time}`}
+                        formatter={(value: number) => `${value} ${getUnitLabel(selectedMetric, unitSystem)}`}
+                    />
+                    <Bar
+                        dataKey={(entry) => getMetricValue(entry, selectedMetric, unitSystem)}
+                        name={getMetricLabel(selectedMetric)}
+                        fill="#3B82F6"
+                    />
+                    </BarChart>
+                )}
                 </ResponsiveContainer>
                 </div>
             </div>

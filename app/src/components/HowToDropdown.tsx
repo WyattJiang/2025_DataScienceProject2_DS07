@@ -18,8 +18,8 @@ const HowToDropdown = () => {
         </div>
         {openMap && (
           <div className="text-xl text-gray-600 bg-pink-100 p-4 rounded-bl-lg rounded-br-lg shadow-sm -mt-3">
-            Explore the interactive map of Australia. Click on any hexagon to view detailed weather data for that area. 
-            Use the slider to navigate through different years, and project the weather up to three days ahead for each hex.
+            Explore the interactive map of Australia. Hover over the hexagonal regions to view detailed weather data.
+            Use the year slider to explore historical data, and select a season to visualize seasonal changes across different regions.
           </div>
         )}
       </li>
@@ -32,9 +32,7 @@ const HowToDropdown = () => {
         </div>
         {openChat && (
           <div className="text-xl text-gray-600 bg-blue-100 p-4 rounded-bl-lg rounded-br-lg shadow-sm -mt-3">
-              Use the <em>"Chat Assistant"</em> button to open a side panel where an AI chatbot can provide personalized 
-              suggestions and insights based on your prompts.
-
+              Click the <em>"Chat Assistant"</em> button to open a side panel. The AI chatbot provides personalized suggestions, explanations, and insights based on your prompts, tailored to your selected user role.
           </div>
         )}
       </li>
@@ -47,8 +45,8 @@ const HowToDropdown = () => {
         </div>
         {openGraph && (
           <div className="text-xl text-gray-600 bg-green-100 p-4 rounded-bl-lg rounded-br-lg shadow-sm -mt-3">
-            Use the sidebar's <em>"Trend Graphs"</em> button to visualize and compare temperature or rainfall trends for up to two suburbs. 
-            View past, present, and future data to analyze weather patterns.
+            Use the <em>"Trend Graphs"</em> button in the sidebar to visualize and compare temperature or rainfall trends for up to five suburbs over the past 20 years.
+            Analyze patterns to gain insights into local climate changes.
           </div>
         )}
       </li>
@@ -61,22 +59,23 @@ const HowToDropdown = () => {
         </div>
         {openWeather && (
           <div className="text-xl text-gray-600 bg-yellow-100 p-4 rounded-bl-lg rounded-br-lg shadow-sm -mt-3">
-            Use the <em>"Real-Time Weather"</em> button to search live weather data by suburb name or geographic coordinates. 
-            Stay updated with the most recent weather conditions.
+            Click the <em>"Real-Time Weather"</em> button to search for live weather data by city name, geographic coordinates (in decimal degrees), or suburb name.
+            Based on your user role, you'll see personalized metrics and animated visuals of the sun and moon paths for the selected location.
           </div>
         )}
       </li>
 
-      {/* Sidebar Tools */}
+      {/* Weather forecast */}
       <li>
         <div className="flex justify-between items-center cursor-pointer bg-purple-100 rounded-lg shadow-md p-4" onClick={() => setOpenSidebar(!openSidebar)}>
-          <strong className='text-2xl ml-2'>🧭 Sidebar Tools:</strong> 
+          <strong className='text-2xl ml-2'>🔭 Weather Forecast:</strong> 
           <span className='text-2xl mr-4'>{openSidebar ? "▲" : "▼"}</span>
         </div>
         {openSidebar && (
           <div className="text-xl text-gray-600 bg-purple-100 p-4 rounded-bl-lg rounded-br-lg shadow-sm -mt-3">
-            Toggle various data layers such as average temperature, precipitation, or wind speed. 
-            Use these tools to explore different weather metrics in real-time.
+            Use the <em>"Weather Forecast"</em> feature to retrieve forecasts for up to 5 days.
+            Search by city name, coordinates, or suburb. After submitting your query, view forecast summaries for each day including min, max, and average temperatures.
+            Click a forecasted day to explore detailed metrics using interactive bar or line charts. Toggle between metric and imperial units.
           </div>
         )}
       </li>
@@ -89,8 +88,8 @@ const HowToDropdown = () => {
         </div>
         {openRole && (
           <div className="text-xl text-gray-600 bg-teal-100 p-4 rounded-bl-lg rounded-br-lg shadow-sm -mt-3">
-            Switch between different user roles (e.g., General Public, Farmer, Urban Planner) to receive role-specific 
-            suggestions in the chat assistant. Tailor the conversation context based on your selected role.
+            Switch between roles such as General Public, Farmer, or Urban Planner to receive role-specific metrics and chat suggestions.
+            Customize your experience further by updating your role context, changing your email, or updating your password from the profile page.
           </div>
         )}
       </li>
@@ -103,8 +102,7 @@ const HowToDropdown = () => {
         </div>
         {openSettings && (
           <div className="text-xl text-gray-600 bg-orange-100 p-4 rounded-bl-lg rounded-br-lg shadow-sm -mt-3">
-            Access the <em>"Settings"</em> in the sidebar to enable accessibility features like colorblind mode, 
-            text enlargement, and high contrast for better readability.
+            Access the <em>"Settings"</em> section in the sidebar to toggle accessibility features like colorblind mode, text enlargement, and high-contrast themes for improved readability.
           </div>
         )}
       </li>
