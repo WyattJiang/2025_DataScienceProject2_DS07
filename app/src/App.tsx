@@ -11,7 +11,7 @@ import SettingsModal from './components/SettingsModal';
 
 
 // --- Constants ---
-const MAP_HTML_PATH = 'https://myawsbucketclimates.s3.ap-southeast-2.amazonaws.com/prec.html'; 
+const MAP_HTML_PATH = 'https://myawsbucketclimates.s3.ap-southeast-2.amazonaws.com/precv1.html'; 
 
 // --- Main App Component ---
 const WeatherDashboard: React.FC = () => {
