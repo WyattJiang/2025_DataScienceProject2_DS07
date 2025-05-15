@@ -136,6 +136,7 @@ const WeatherDashboard: React.FC = () => {
           activeLayers={activeLayers}
           onToggleLayer={toggleLayer}
           mapHtmlPath={MAP_HTML_PATH}
+          theme={theme}
         />
         <HowToModal isOpen={showHowTo} onClose={() => setShowHowTo(false)} />
         <SettingsModal
