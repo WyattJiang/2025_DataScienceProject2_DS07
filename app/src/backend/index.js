@@ -204,6 +204,46 @@ app.get('/api/trend-data', async (req, res) => {
     }
 });
 
+app.get('/api/trend-data-download', async (req, res) => {
+    const { suburb, metric = 'tmax', season = 'Summer', yearRange = 10 } = req.query;
+    const currentYear = new Date().getFullYear();
+    const yearCutoff = currentYear - yearRange;
+
+    const stateMatch = suburb ? suburb.match(/\((.*?)\)$/) : null;
+    const state = stateMatch ? stateMatch[1] : null;
+    const suburbNameNoState = suburb ? suburb.replace(/\s*\(.*?\)\s*$/, '').trim() : "";
+
+    try {
+        let query = {};
+
+        if (suburb) {
+            if (state) {
+                query = {
+                    $and: [
+                        { SAL_NAME21: { $regex: `^${suburbNameNoState}($|\\s*\\()` } },
+                        { STE_NAME21: { $regex: stateNameFromAbbreviation(state), $options: 'i' } }
+                    ]
+                };
+            } else {
+                query = { SAL_NAME21: { $regex: `^${suburbNameNoState}($|\\s*\\()` } };
+            }
+        }
+
+        const data = await db.collection("combined_season").find(query).toArray();
+        const reshaped = data
+            .flatMap(restructureByYearSeason)
+            .filter(entry => entry.year >= yearCutoff && entry.year <= currentYear)
+            .sort((a, b) => a.year - b.year);
+
+        res.setHeader('Content-Disposition', `attachment; filename="trend-data-${suburbNameNoState}.json"`);
+        res.setHeader('Content-Type', 'application/json');
+        res.send(JSON.stringify(reshaped, null, 2));
+    } catch (err) {
+        console.error("Download error:", err);
+        res.status(500).json({ error: "Failed to generate download." });
+    }
+});
+
 
 // --- Sign Up Route ---
 app.post('/api/signup', async (req, res) => {

@@ -27,7 +27,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, appName = "Climat
     }
 
     const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    const isValidPassword = (password: string) =>/^(?=.*[!@#$%^&*])(?=.*\d)[A-Za-z\d!@#$%^&*]{8,}$/.test(password);
+    const isValidPassword = (password: string) =>/^(?=.*[!@#$%^&-?*])(?=.*\d)[A-Za-z\d!@#$%^&*]{8,}$/.test(password);
     
   
     if (isSignUpMode) {
@@ -144,7 +144,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, appName = "Climat
                 required
               />
               <p className="text-center text-xs text-gray-500 mt-1">
-                Password must be at least 8 characters, with one number and one special character.
+                Password must be at least 8 characters, with one number and one special character(!@#$%^&-?).
               </p>
             </div>
           )}

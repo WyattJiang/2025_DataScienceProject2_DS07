@@ -143,7 +143,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                     if (!isValidPassword(newPassword)) {
                       setMessageType('error');
                       setUpdateMessage(
-                        'Password must be at least 8 characters long and include one number and one special character.'
+                        'Password must be at least 8 characters long and include one number and one special character(!@#$%^&-?).'
                       );
                       return;
                     }
