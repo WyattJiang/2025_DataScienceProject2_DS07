@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import {
   LineChart, BarChart,Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from 'recharts';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { toPng } from 'html-to-image';
 
 type Mode = 'city' | 'coords' | 'suburb';
 
@@ -90,7 +91,7 @@ const Forecasting: React.FC<Props> = ({ isOpen, onClose }) => {
     const [suburb, setSuburb] = useState('Clayton');
     const [displayLocation, setDisplayLocation] = useState('');
     const [chartType, setChartType] = useState<'line' | 'bar'>('bar');
-    
+    const chartRef = useRef(null);
 
 
     useEffect(() => {
@@ -153,7 +154,7 @@ const Forecasting: React.FC<Props> = ({ isOpen, onClose }) => {
         humidity: '%',
         heatindex: unit === 'metric' ? '°C' : '°F',
         dewpoint: unit === 'metric' ? '°C' : '°F',
-        uv: '',
+        uv: 'UV',
         };
         return labels[metric] || '';
     };
@@ -172,6 +173,28 @@ const Forecasting: React.FC<Props> = ({ isOpen, onClose }) => {
         return labels[metric] || metric;
     };
 
+    const handleDownloadJson = () => {
+        if (!popupDay) return;
+        const simplified = popupDay.hour.map((hour) => ({
+            time: hour.time,
+            value: getMetricValue(hour, selectedMetric, unitSystem),
+            unit: getUnitLabel(selectedMetric, unitSystem),
+            metric: getMetricLabel(selectedMetric),
+        }));
+
+        const blob = new Blob([JSON.stringify(simplified, null, 2)], {
+            type: 'application/json',
+        });
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${popupDay.date}_${selectedMetric}_${unitSystem}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
 
     return (
     <div className="fixed inset-0 z-[9999] bg-black bg-opacity-50 flex items-center justify-center">
@@ -328,7 +351,7 @@ const Forecasting: React.FC<Props> = ({ isOpen, onClose }) => {
                 >
                     <X className="w-6 h-6" />
                 </button>
-                <h3 className="text-xl font-semibold text-center mb-4">
+                <h3 className="text-4xl font-bold text-center mb-4">
                     {popupDay.date} - Hourly Forecast
                 </h3>
 
@@ -364,23 +387,23 @@ const Forecasting: React.FC<Props> = ({ isOpen, onClose }) => {
                         onChange={(e) => setChartType(e.target.value as 'line' | 'bar')}
                         className="border p-2 rounded text-sm"
                     >
-                        <option value="bar">Bar Chart</option>
                         <option value="line">Line Chart</option>
+                        <option value="bar">Bar Chart</option>
                     </select>
                 </div>
 
                 {/* Line Chart */}
-                <div className="mb-4 text-center">
-                    <h3 className="text-lg font-semibold">
-                        {getMetricLabel(selectedMetric)} Over Time ({unitSystem === 'metric' ? 'Metric' : 'Imperial'})
-                    </h3>
-                </div>
-                <ResponsiveContainer width="100%" height={500}>
+                <div ref={chartRef} className="bg-white rounded shadow">
+                <h3 className="text-lg font-semibold mb-4 text-center">
+                    {getMetricLabel(selectedMetric)} Over Time ({unitSystem === 'metric' ? 'Metric' : 'Imperial'})
+                </h3>
+                
+                <ResponsiveContainer  width="100%" height={500}>
                     {chartType === 'line' ? (
-                    <LineChart data={popupDay.hour}>
+                    <LineChart data={popupDay.hour} margin={{ top: 10, right: 15,bottom: 25, left: 35}}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="time" tickFormatter={(t) => t.slice(11, 16)} />
-                    <YAxis unit={getUnitLabel(selectedMetric, unitSystem)} />
+                    <XAxis dataKey="time" tickFormatter={(t) => t.slice(11, 16)} label={{ value: 'Time (HH:MM)', position: 'outsideBottom', dy: 20 }} />
+                    <YAxis unit={getUnitLabel(selectedMetric, unitSystem)} label={{ value: `${getMetricLabel(selectedMetric)} (${getUnitLabel(selectedMetric, unitSystem)})` , angle: -90, position: 'outsideLeft', dx: -50 }} />
                     <Tooltip
                         labelFormatter={(time) => `Time: ${time}`}
                         formatter={(value: number) => `${value} ${getUnitLabel(selectedMetric, unitSystem)}`}
@@ -395,10 +418,10 @@ const Forecasting: React.FC<Props> = ({ isOpen, onClose }) => {
                     />
                     </LineChart>
                 ) : (
-                    <BarChart data={popupDay.hour}>
+                    <BarChart data={popupDay.hour} margin={{ top: 10, right: 15,bottom: 25, left: 35 }}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="time" tickFormatter={(t) => t.slice(11, 16)} />
-                    <YAxis unit={getUnitLabel(selectedMetric, unitSystem)} />
+                    <XAxis dataKey="time" tickFormatter={(t) => t.slice(11, 16)} label={{ value: 'Time (HH:MM)', position: 'outsideBottom', dy: 20 }}/>
+                    <YAxis unit={getUnitLabel(selectedMetric, unitSystem)} label={{ value: `${getMetricLabel(selectedMetric)} (${getUnitLabel(selectedMetric, unitSystem)})` , angle: -90, position: 'outsideLeft', dx: -50 }}/>
                     <Tooltip
                         labelFormatter={(time) => `Time: ${time}`}
                         formatter={(value: number) => `${value} ${getUnitLabel(selectedMetric, unitSystem)}`}
@@ -411,6 +434,33 @@ const Forecasting: React.FC<Props> = ({ isOpen, onClose }) => {
                     </BarChart>
                 )}
                 </ResponsiveContainer>
+                </div>
+                <div className="mt-4 flex gap-4 justify-center">
+                    <button
+                        onClick={handleDownloadJson}
+                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+                    >
+                        Download JSON
+                    </button>
+                    <button
+                        onClick={async () => {
+                        if (chartRef.current === null) return;
+                        try {
+                            const dataUrl = await toPng(chartRef.current);
+                            const link = document.createElement('a');
+                            link.download = `${popupDay?.date}_chart.png`;
+                            link.href = dataUrl;
+                            link.click();
+                        } catch (err) {
+                            console.error('Failed to generate image:', err);
+                        }
+                        }}
+                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                    >
+                        Download Chart as PNG
+                    </button>
+                </div>
+                
                 </div>
             </div>
         )}        
